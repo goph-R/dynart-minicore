@@ -8,7 +8,13 @@ class Framework
     protected $declarations = [];
     protected $singletons = [];
 
-    public static function init(Framework $instance) {
+    /** 
+     * @throws FrameworkException
+     */
+    public static function setInstance(Framework $instance) {
+        if (self::$instance) {
+            throw new FrameworkException("Framework was initialized before.");
+        }
         self::$instance = $instance;
     }
 
