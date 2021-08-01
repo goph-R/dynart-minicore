@@ -59,19 +59,29 @@ class Framework
     }
 
     /**
+     * @return array
+     * @throws FrameworkException
+     */
+    public function extractDeclaration($declaration)
+    {
+        if (is_string($declaration)) {
+            $class = $declaration;
+            $args = [];
+        } else if (is_array($declaration)) {
+            $class = array_shift($declaration);
+            $args = $declaration;
+        } else {
+            throw new FrameworkException("Declaration is not a string or an array.");            
+        }
+        return [$class, $args];
+    }
+
+    /**
      * @return mixed
      * @throws FrameworkException
      */
     public function create($declaration) {
-        if (is_array($declaration)) {
-            $class = array_shift($declaration);
-            $args = $declaration;
-        } else if (is_string($declaration)) {
-            $class = $declaration;
-            $args = [];
-        } else {
-            throw new FrameworkException("Declaration is not a string or an array.");            
-        }
+        list($class, $args) = $this->extractDeclaration($declaration);
         try {
             $reflect = new \ReflectionClass($class);
             return $reflect->newInstanceArgs($args);
