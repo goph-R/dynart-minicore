@@ -32,7 +32,7 @@ abstract class Database {
         $user = $this->config->get('database.'.$this->name.'.user');
         $password = $this->config->get('database.'.$this->name.'.password');
         $this->pdo = new \PDO($dsn, $user, $password, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
-        $this->connected = true;        
+        $this->connected = true;
     }
 
     public function escapeName(string $name) {
@@ -40,7 +40,7 @@ abstract class Database {
     }
 
     public function query(string $query, array $params=[]) {
-        $this->connect();        
+        $this->connect();
         try {
             // we only want json_encode the parameters if the logger level is info
             if ($this->logger->getLevel() <= Logger::INFO) { 

@@ -2,15 +2,15 @@
 
 namespace Dynart\Minicore;
 
-class Record {   
+class Record {
 
     protected $modified = [];
     protected $newRecord;
     protected $data;
 
-    public function __construct(array &$data, boolean $newRecord=null) {
+    public function __construct(array &$data, bool $newRecord=true) {
         $this->data = $data;
-        $this->newRecord = $newRecord === null ? true : $newRecord;
+        $this->newRecord = $newRecord;
     }
 
     public function isNew() {
@@ -36,7 +36,7 @@ class Record {
         foreach ($array as $name => $value) {
             if ($fields && !in_array($name, $fields)) {
                 continue;
-            }            
+            }
             $this->set($name, $value);
         }
     }
