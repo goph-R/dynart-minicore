@@ -78,7 +78,11 @@ class Request {
     }
 
     public function get($name, $defaultValue=null) {
-        return isset($this->data[$name]) ? $this->data[$name] : $defaultValue;
+        return $this->has($name) ? $this->data[$name] : $defaultValue;
+    }
+
+    public function has($name) {
+        return isset($this->data[$name]);
     }
 
     public function set($name, $value) {
