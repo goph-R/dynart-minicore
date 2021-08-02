@@ -47,18 +47,14 @@ abstract class Query {
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
-    protected function getTable() {
-        return $this->framework->get($this->table);
-    }
-
-    public function getAllFields(bool $translated) {
+    public function getAllFields(array &$options) {
         $result = [];
         $table = $this->getTable();
         $fields = $table->getFields();
         foreach ($fields as $field) {
             $result[] = $table->getName().'.'.$field;
         }
-        if ($translated && $table->hasTranslationTable()) {
+        if ($this->useTranslated($options)) {
             $trTable = $table->getTranslationTable();
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
@@ -66,6 +62,58 @@ abstract class Query {
             }
         }
         return $result;
+    }
+
+    public function getSelect($fields=null, array $options=[]) {
+        
+        // use translated in default
+        if (!isset($options['use_translated'])) {
+            $options['use_translated'] = true;
+        }
+        
+        // use all the fields in default
+        $table = $this->getTable();
+        if ($fields === null) {
+            $this->selectFields = $this->getAllFields($options);
+        } else {
+            $this->selectFields = $fields;
+        }
+
+        // create the select
+        $fieldNames = join(', ', $this->escapeNames($this->selectFields));
+        $tableName = $this->db->escapeName($table->getName());
+        $sql = "SELECT $fieldNames FROM $tableName";
+        $sql .= $this->createJoins($options);
+
+        return $sql;
+    }
+
+    protected function createJoins(array &$options) {
+        $joins = $this->getJoins($options);
+        if (!$joins) {
+            return '';
+        }
+        $result = '';
+        foreach ($joins as $join) {
+            if (is_array($join)) {
+                $result .= ' '.$join['type'].' JOIN '.$join['condition'];
+            } else {
+                $result .= ' JOIN '.$join;
+            }                
+        }
+        return $result;
+    }
+
+    protected function getTable() {
+        return $this->framework->get($this->table);
+    }
+
+    protected function clearSqlParams() {
+        $this->sqlParams = [];
+    }
+
+    protected function addSqlParams(array $params) {
+        $this->sqlParams = array_merge($this->sqlParams, $params);
     }
 
     protected function escapeNames(array $names) {
@@ -92,44 +140,6 @@ abstract class Query {
         return "$trTableName ON $trPrimaryKey = $primaryKey AND $trLocale = :tr_locale";
     }
 
-    protected function clearSqlParams() {
-        $this->sqlParams = [];
-    }
-
-    protected function addSqlParams(array $params) {
-        $this->sqlParams = array_merge($this->sqlParams, $params);
-    }
-
-    public function getSelect($fields=null, array $options=[]) {
-        
-        // use translated in default
-        if (!isset($options['use_translated'])) {
-            $options['use_translated'] = true;
-        }
-        
-        // use all the fields in default
-        $table = $this->getTable();
-        if ($fields === null) {
-            $this->selectFields = $this->getAllFields(true);
-        } else {
-            $this->selectFields = $fields;
-        }
-
-        // create the select
-        $fieldNames = join(', ', $this->escapeNames($this->selectFields));
-        $tableName = $this->db->escapeName($table->getName());
-        $sql = "SELECT $fieldNames FROM $tableName";
-
-        // create the joins
-        $joins = $this->getJoins($options);
-        if ($joins) {
-            foreach ($joins as $join) {
-                $sql .= ' JOIN '.$join;
-            }
-        }
-        return $sql;
-    }
-
     protected function useTranslated(array &$options) {
         $table = $this->getTable();
         return $table->hasTranslationTable()
@@ -140,7 +150,10 @@ abstract class Query {
     protected function getJoins(array &$options) {
         $result = [];
         if ($this->useTranslated($options)) {
-            $result[] = $this->getTranslationJoin();
+            $result[] = [
+                'type' => 'LEFT',
+                'condition' => $this->getTranslationJoin()
+            ];
         }
         return $result;
     }
