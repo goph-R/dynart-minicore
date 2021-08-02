@@ -7,8 +7,6 @@ use Dynart\Minicore\FrameworkException;
 
 abstract class Table {
     
-    const NO_DEFAULT = '--nd--'; // unique value for 'no default'
-
     protected $framework;
     protected $db;
     protected $name = '';
@@ -28,15 +26,23 @@ abstract class Table {
         return $this->name;
     }
 
+    public function hasTranslationTable() {
+        return $this->translationTable ? true : false;
+    }
+
+    public function getTranslationTable() {
+        return $this->framework->get($this->translationTable);
+    }
+
     public function getPrimaryKey() {
         return $this->primaryKey;
     }
 
     public function create($newRecord=true) {
         $data = [];
-        foreach ($this->fields as $name => $defaultValue) {
-            if ($defaultValue != self::NO_DEFAULT) {
-                $data[$name] = $defaultValue;
+        foreach ($this->fields as $name => $options) {
+            if (is_array($options) && array_key_exists('default_value', $options)) {
+                $data[$name] = $options['default_value'];
             }
         }
         return new Record($data, $newRecord);
@@ -52,51 +58,6 @@ abstract class Table {
 
     public function getFields() {
         return array_keys($this->fields);
-    }
-
-    public function getAllEscapedFields(bool $translated=true) {
-        $result = [];
-        $fields = $this->getFields();
-        foreach ($fields as $field) {
-            $result[] = $this->db->escapeName($this->name.'.'.$field);
-        }
-        if ($translated && $this->translationTable) {
-            $trTable = $this->framework->get($this->translationTable);
-            $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
-            foreach ($trFields as $trField) {
-                $result[] = $this->db->escapeName($trTable->getName().'.'.$trField);
-            }
-        }
-        return $result;
-    }
-
-    public function getTranslationJoin(array &$params, string $locale) {
-        if (is_array($this->primaryKey)) {
-            throw new FrameworkException("Primary key must be single!");
-        }
-        $primaryKey = $this->db->escapeName($this->name.'.'.$this->primaryKey);
-        $trTable = $this->framework->get($this->translationTable);
-        $trTableName = $this->db->escapeName($trTable->getName());
-        $trPrimaryKeys = $trTable->getPrimaryKey();
-        $trPrimaryKey = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[0]);
-        $trLocale = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[1]);
-        $params[':tr_locale'] = $locale;
-        return "$trTableName ON $trPrimaryKey = $primaryKey AND $trLocale = :tr_locale";
-    }
-
-    public function findById($id, $translated=true) {
-        list($condition, $params) = $this->getPrimaryKeyConditionAndParams($id);
-        $allFields = join(', ', $this->getAllEscapedFields($translated));
-        $name = $this->db->escapeName($this->name);
-        $sql = "SELECT $allFields FROM $name";
-        if ($translated && $this->translationTable) {
-            $translation = $this->framework->get('translation');
-            $translationJoin = $this->getTranslationJoin($params, $translation->getLocale());
-            $sql .= " JOIN $translationJoin";
-        }
-        $sql .= " WHERE $condition";
-        $sql .= " LIMIT 1"; // TODO: only on databases that support the limit clause
-        return $this->db->fetch($sql, $params);
     }
 
     public function deleteById($id) {
@@ -154,7 +115,7 @@ abstract class Table {
         return $result;
     }
 
-    protected function getPrimaryKeyConditionAndParams($primaryKeyValue) {        
+    public function getPrimaryKeyConditionAndParams($primaryKeyValue) {        
         if (is_array($this->primaryKey) != is_array($primaryKeyValue)) {
             throw new FrameworkException("The primary key type doesn't match with ".gettype($primaryKeyValue).".");
         }

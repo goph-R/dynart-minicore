@@ -83,11 +83,6 @@ abstract class Database {
         $stmt = null;
         return $result;
     }
-
-    public function fetchField(string $query, array $params=[]) {
-        $result = $this->fetchColumn($query, $params);
-        return $result ? $result[0] : null;
-    }
     
     public function fetch(string $query, array $params=[]) {
         $result = $this->fetchAll($query, $params);
