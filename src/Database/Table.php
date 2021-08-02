@@ -7,6 +7,8 @@ use Dynart\Minicore\FrameworkException;
 
 abstract class Table {
     
+    const NO_DEFAULT = '--nd--'; // unique value for 'no default'
+
     protected $framework;
     protected $db;
     protected $name = '';
@@ -31,7 +33,12 @@ abstract class Table {
     }
 
     public function create($newRecord=true) {
-        $data = $this->fields; // copy the default data
+        $data = [];
+        foreach ($this->fields as $name => $defaultValue) {
+            if ($defaultValue != self::NO_DEFAULT) {
+                $data[$name] = $defaultValue;
+            }
+        }
         return new Record($data, $newRecord);
     }
 
@@ -47,20 +54,20 @@ abstract class Table {
         return array_keys($this->fields);
     }
 
-    public function getAllEscapedFields($translated) {
-        $fullNames = [];
+    public function getAllEscapedFields(bool $translated=true) {
+        $result = [];
         $fields = $this->getFields();
         foreach ($fields as $field) {
-            $fullNames[] = $this->db->escapeName($this->name.'.'.$field);
+            $result[] = $this->db->escapeName($this->name.'.'.$field);
         }
         if ($translated && $this->translationTable) {
             $trTable = $this->framework->get($this->translationTable);
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
-                $fullNames[] = $this->db->escapeName($trTable->getName().'.'.$trField);
+                $result[] = $this->db->escapeName($trTable->getName().'.'.$trField);
             }
         }
-        return join(', ', $fullNames);
+        return $result;
     }
 
     public function getTranslationJoin(array &$params, string $locale) {
@@ -74,28 +81,29 @@ abstract class Table {
         $trPrimaryKey = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[0]);
         $trLocale = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[1]);
         $params[':tr_locale'] = $locale;
-        return "$trTableName on $trPrimaryKey = $primaryKey and $trLocale = :tr_locale";
+        return "$trTableName ON $trPrimaryKey = $primaryKey AND $trLocale = :tr_locale";
     }
 
     public function findById($id, $translated=true) {
         list($condition, $params) = $this->getPrimaryKeyConditionAndParams($id);
-        $allFields = $this->getAllEscapedFields($translated);        
-        $sql = "select $allFields from ".$this->db->escapeName($this->name);        
+        $allFields = join(', ', $this->getAllEscapedFields($translated));
+        $name = $this->db->escapeName($this->name);
+        $sql = "SELECT $allFields FROM $name";
         if ($translated && $this->translationTable) {
             $translation = $this->framework->get('translation');
             $translationJoin = $this->getTranslationJoin($params, $translation->getLocale());
-            $sql .= " join $translationJoin";
+            $sql .= " JOIN $translationJoin";
         }
-        $sql .= " where $condition";
-        $sql .= " limit 1"; // TODO: only on databases that support the limit clause
+        $sql .= " WHERE $condition";
+        $sql .= " LIMIT 1"; // TODO: only on databases that support the limit clause
         return $this->db->fetch($sql, $params);
     }
 
     public function deleteById($id) {
         list($condition, $params) = $this->getPrimaryKeyConditionAndParams($id);
-        $sql = "delete from ".$this->db->escapeName($this->name);
-        $sql .= " where $condition";
-        $sql .= " limit 1"; // TODO: only on databases that support the limit clause
+        $name = $this->db->escapeName($this->name);
+        $sql = "DELETE FROM $name WHERE $condition";
+        $sql .= " LIMIT 1"; // TODO: only on databases that support the limit clause
         return $this->db->query($sql, $params);        
     }
 

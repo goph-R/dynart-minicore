@@ -2,6 +2,8 @@
 
 namespace Dynart\Minicore\Database;
 
+use Dynart\Minicore\FrameworkException;
+
 class Record {
 
     protected $modified = [];
@@ -22,13 +24,14 @@ class Record {
     }
     
     public function get(string $name) {
-        // TODO: check existance
+        if (!array_key_exists($name, $this->data)) {
+            throw new FrameworkException("The record doesn't have the field '$name'.");
+        }
         return $this->data[$name];
     }
     
     public function set(string $name, $value) {
-        // TODO: check existance
-        if ($value !== $this->data[$name]) {
+        if (!array_key_exists($name, $this->data) || $value !== $this->data[$name]) {
             $this->modified[] = $name;
         }
         $this->data[$name] = $value;
