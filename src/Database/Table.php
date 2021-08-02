@@ -1,6 +1,9 @@
 <?php
 
-namespace Dynart\Minicore;
+namespace Dynart\Minicore\Database;
+
+use Dynart\Minicore\Framework;
+use Dynart\Minicore\FrameworkException;
 
 abstract class Table {
     

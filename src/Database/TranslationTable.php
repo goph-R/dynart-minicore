@@ -1,6 +1,6 @@
 <?php
 
-namespace Dynart\Minicore;
+namespace Dynart\Minicore\Database;
 
 abstract class TranslationTable extends Table {
 
