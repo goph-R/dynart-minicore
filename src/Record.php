@@ -22,10 +22,12 @@ class Record {
     }
     
     public function get(string $name) {
+        // TODO: check existance
         return $this->data[$name];
     }
     
     public function set(string $name, $value) {
+        // TODO: check existance
         if ($value !== $this->data[$name]) {
             $this->modified[] = $name;
         }

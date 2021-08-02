@@ -47,43 +47,40 @@ abstract class Table {
     public function getAllEscapedFields($translated) {
         $fullNames = [];
         $fields = $this->getFields();
-        $tableName = $this->db->escapeName($this->name);
         foreach ($fields as $field) {
-            $fullNames[] = $tableName.'.'.$this->db->escapeName($field);
+            $fullNames[] = $this->db->escapeName($this->name.'.'.$field);
         }
         if ($translated && $this->translationTable) {
             $trTable = $this->framework->get($this->translationTable);
-            $trTableName = $this->db->escapeName($trTable->getName());
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
-                $fullNames[] = $trTableName.'.'.$this->db->escapeName($trField);
+                $fullNames[] = $this->db->escapeName($trTable->getName().'.'.$trField);
             }
         }
         return join(', ', $fullNames);
     }
 
-    public function getTranslationJoin(array &$params) {
-        if (!$this->translationTable) {
-            return '';
+    public function getTranslationJoin(array &$params, string $locale) {
+        if (is_array($this->primaryKey)) {
+            throw new FrameworkException("Primary key must be single!");
         }
-        $tableName = $this->db->escapeName($this->name);
-        $primaryKey = $tableName.'.'.$this->db->escapeName($this->primaryKey);
-        $translation = $this->framework->get('translation');
+        $primaryKey = $this->db->escapeName($this->name.'.'.$this->primaryKey);
         $trTable = $this->framework->get($this->translationTable);
         $trTableName = $this->db->escapeName($trTable->getName());
         $trPrimaryKeys = $trTable->getPrimaryKey();
-        $trPrimaryKey = $trTableName.'.'.$this->db->escapeName($trPrimaryKeys[0]);
-        $trLocale = $trTableName.'.'.$this->db->escapeName($trPrimaryKeys[1]);
-        $params[':tr_locale'] = $translation->getLocale();
+        $trPrimaryKey = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[0]);
+        $trLocale = $this->db->escapeName($trTable->getName().'.'.$trPrimaryKeys[1]);
+        $params[':tr_locale'] = $locale;
         return "$trTableName on $trPrimaryKey = $primaryKey and $trLocale = :tr_locale";
     }
 
     public function findById($id, $translated=true) {
         list($condition, $params) = $this->getPrimaryKeyConditionAndParams($id);
-        $allFields = $this->getAllEscapedFields($translated);
-        $translationJoin = $this->getTranslationJoin($params);
-        $sql = "select $allFields from ".$this->db->escapeName($this->name);
-        if ($translated && $translationJoin) {
+        $allFields = $this->getAllEscapedFields($translated);        
+        $sql = "select $allFields from ".$this->db->escapeName($this->name);        
+        if ($translated && $this->translationTable) {
+            $translation = $this->framework->get('translation');
+            $translationJoin = $this->getTranslationJoin($params, $translation->getLocale());
             $sql .= " join $translationJoin";
         }
         $sql .= " where $condition";
@@ -150,18 +147,17 @@ abstract class Table {
         if (is_array($this->primaryKey) != is_array($primaryKeyValue)) {
             throw new FrameworkException("The primary key type doesn't match with ".gettype($primaryKeyValue).".");
         }
-        $tableName = $this->db->escapeName($this->name);
         $conditions = [];
         $params = [];
         if (is_string($this->primaryKey)) { // single primary key
-            $conditions[] = $tableName.'.'.$this->db->escapeName($this->primaryKey).' = :pk_'.$this->primaryKey;
+            $conditions[] = $this->db->escapeName($this->name.'.'.$this->primaryKey).' = :pk_'.$this->primaryKey;
             $params[':pk_'.$this->primaryKey] = $primaryKeyValue;        
         } else if (is_array($this->primaryKey)) { // multi primary key
             $index = 0;
             foreach ($this->primaryKey as $primaryKey) {
-                $index++;
-                $conditions[] = $tableName.'.'.$this->db->escapeName($primaryKey).' = :pk_'.$primaryKey;
+                $conditions[] = $this->db->escapeName($this->name.'.'.$primaryKey).' = :pk_'.$primaryKey;
                 $params[':pk_'.$primaryKey] = $primaryKeyValue[$index];
+                $index++;
             }            
         }
         return ['('.join(' AND ', $conditions).')', $params];

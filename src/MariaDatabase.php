@@ -6,8 +6,8 @@ class MariaDatabase extends Database {
     
     public function escapeName(string $name) {
         // TODO: regex check
-        // TODO: split by dot
-        return "`$name`";
+        $parts = explode('.', $name);
+        return '`'.join('`.`', $parts).'`';
     }
 
     protected function connect() {
