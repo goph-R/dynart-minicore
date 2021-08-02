@@ -47,23 +47,6 @@ abstract class Query {
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
-    public function getAllFields(array &$options) {
-        $result = [];
-        $table = $this->getTable();
-        $fields = $table->getFields();
-        foreach ($fields as $field) {
-            $result[] = $table->getName().'.'.$field;
-        }
-        if ($this->useTranslated($options)) {
-            $trTable = $table->getTranslationTable();
-            $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
-            foreach ($trFields as $trField) {
-                $result[] = $trTable->getName().'.'.$trField;
-            }
-        }
-        return $result;
-    }
-
     public function getSelect($fields=null, array $options=[]) {
         
         // use translated in default
@@ -88,22 +71,6 @@ abstract class Query {
         return $sql;
     }
 
-    protected function createJoins(array &$options) {
-        $joins = $this->getJoins($options);
-        if (!$joins) {
-            return '';
-        }
-        $result = '';
-        foreach ($joins as $join) {
-            if (is_array($join)) {
-                $result .= ' '.$join['type'].' JOIN '.$join['condition'];
-            } else {
-                $result .= ' JOIN '.$join;
-            }                
-        }
-        return $result;
-    }
-
     protected function getTable() {
         return $this->framework->get($this->table);
     }
@@ -122,7 +89,71 @@ abstract class Query {
             $result[] = $this->db->escapeName($name);
         }
         return $result;
+    }    
+
+    protected function createJoins(array &$options) {
+        $joins = $this->getJoins($options);
+        if (!$joins) {
+            return '';
+        }
+        $result = '';
+        foreach ($joins as $join) {
+            if (is_array($join)) {
+                $result .= ' '.$join['type'].' JOIN '.$join['condition'];
+            } else {
+                $result .= ' JOIN '.$join;
+            }                
+        }
+        return $result;
     }
+
+    protected function getJoins(array &$options) {
+        $result = [];
+        if ($this->useTranslated($options)) {
+            $result[] = [
+                'type' => 'LEFT',
+                'condition' => $this->getTranslationJoin()
+            ];
+        }
+        return $result;
+    }
+
+    protected function getWhere(array &$options) {
+        $conditions = $this->getConditions($options);
+        return $conditions ? ' WHERE '.join(' AND ', $conditions) : '';
+    }    
+
+    protected function getConditions(array &$options) {
+        $result = [];
+        if (isset($options['find_id'])) {
+            $table = $this->getTable();
+            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($options['find_id']);
+            $this->addSqlParams($params);
+            $result[] = $condition;
+        }
+        $condition = $this->getTextSearchCondition($options);
+        if ($condition) {
+            $result[] = $condition;
+        }
+        return $result;
+    }    
+
+    protected function getAllFields(array &$options) {
+        $result = [];
+        $table = $this->getTable();
+        $fields = $table->getFields();
+        foreach ($fields as $field) {
+            $result[] = $table->getName().'.'.$field;
+        }
+        if ($this->useTranslated($options)) {
+            $trTable = $table->getTranslationTable();
+            $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
+            foreach ($trFields as $trField) {
+                $result[] = $trTable->getName().'.'.$trField;
+            }
+        }
+        return $result;
+    }    
 
     protected function getTranslationJoin() {
         $table = $this->getTable();
@@ -145,37 +176,6 @@ abstract class Query {
         return $table->hasTranslationTable()
             && isset($options['use_translated'])
             && $options['use_translated'];
-    }
-
-    protected function getJoins(array &$options) {
-        $result = [];
-        if ($this->useTranslated($options)) {
-            $result[] = [
-                'type' => 'LEFT',
-                'condition' => $this->getTranslationJoin()
-            ];
-        }
-        return $result;
-    }
-
-    protected function getWhere(array &$options) {
-        $conditions = $this->getConditions($options);
-        return $conditions ? ' WHERE '.join(' AND ', $conditions) : '';
-    }
-
-    protected function getConditions(array &$options) {
-        $result = [];
-        if (isset($options['find_id'])) {
-            $table = $this->getTable();
-            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($options['find_id']);
-            $this->addSqlParams($params);
-            $result[] = $condition;
-        }
-        $condition = $this->getTextSearchCondition($options);
-        if ($condition) {
-            $result[] = $condition;
-        }
-        return $result;
     }
 
     protected function getTextSearchCondition(array &$options) {
