@@ -42,7 +42,7 @@ abstract class Query {
 
     public function findAllCount(array $options) {
         $this->clearSqlParams();
-        $sql = $this->getSelect('COUNT(1)', $options);
+        $sql = $this->getSelect(['COUNT(1)'], $options);
         $sql .= $this->getWhere($options);
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
@@ -58,12 +58,13 @@ abstract class Query {
         $table = $this->getTable();
         if ($fields === null) {
             $this->selectFields = $this->getAllFields($options);
+            $fieldNames = join(', ', $this->escapeNames($this->selectFields));
         } else {
             $this->selectFields = $fields;
+            $fieldNames = join(', ', $this->selectFields);
         }
 
-        // create the select
-        $fieldNames = join(', ', $this->escapeNames($this->selectFields));
+        // create the select        
         $tableName = $this->db->escapeName($table->getName());
         $sql = "SELECT $fieldNames FROM $tableName";
         $sql .= $this->createJoins($options);
