@@ -21,34 +21,29 @@ abstract class Query {
 
     public function findById($id, $translated=true) {
         $this->clearSqlParams();
-        $table = $this->getTable();
-        list($condition, $params) = $table->getPrimaryKeyConditionAndParams($id);
-        $this->addSqlParams($params);
-        $fieldNames = join(', ', $this->escapeNames($this->getAllFields($translated)));
-        $name = $this->db->escapeName($table->getName());
-        $sql = "SELECT $fieldNames FROM $name";
-        if ($translated && $table->hasTranslationTable()) {
-            $translationJoin = $this->getTranslationJoin();
-            $sql .= " JOIN $translationJoin";
-        }
-        $sql .= " WHERE $condition";
-        $sql .= " LIMIT 1"; // TODO: only on databases that support the limit clause
+        $options = [
+            'find_id' => $id,
+            'use_translated' => $translated,
+        ];
+        $sql = $this->getSelect(null, $options);
+        $sql .= $this->getWhere($options);
+        $sql .= ' LIMIT 1';
         return $this->db->fetch($sql, $this->sqlParams);
     }
 
-    public function findAll(array $filter=[]) {
+    public function findAll(array $options=[]) {
         $this->clearSqlParams();
-        $sql = $this->getSelect(null, $filter);
-        $sql .= $this->getWhere($filter);
-        $sql .= $this->getOrder($filter);
-        $sql .= $this->getLimit($filter);
+        $sql = $this->getSelect(null, $options);
+        $sql .= $this->getWhere($options);
+        $sql .= $this->getOrder($options);
+        $sql .= $this->getLimit($options);
         return $this->db->fetchAll($sql, $this->sqlParams);
     }
 
-    public function findAllCount(array $filter) {
+    public function findAllCount(array $options) {
         $this->clearSqlParams();
-        $sql = $this->getSelect('COUNT(1)', $filter);
-        $sql .= $this->getWhere($filter);
+        $sql = $this->getSelect('COUNT(1)', $options);
+        $sql .= $this->getWhere($options);
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
@@ -105,28 +100,76 @@ abstract class Query {
         $this->sqlParams = array_merge($this->sqlParams, $params);
     }
 
-    public function getSelect($fields=null, array $filter=[]) {
+    public function getSelect($fields=null, array $options=[]) {
+        
+        // use translated in default
+        if (!isset($options['use_translated'])) {
+            $options['use_translated'] = true;
+        }
+        
+        // use all the fields in default
         $table = $this->getTable();
         if ($fields === null) {
             $this->selectFields = $this->getAllFields(true);
         } else {
             $this->selectFields = $fields;
         }
+
+        // create the select
         $fieldNames = join(', ', $this->escapeNames($this->selectFields));
         $tableName = $this->db->escapeName($table->getName());
         $sql = "SELECT $fieldNames FROM $tableName";
-        if ($table->hasTranslationTable()) {
-            $translationJoin = $this->getTranslationJoin();
-            $sql .= " JOIN $translationJoin";
+
+        // create the joins
+        $joins = $this->getJoins($options);
+        if ($joins) {
+            foreach ($joins as $join) {
+                $sql .= ' JOIN '.$join;
+            }
         }
         return $sql;
     }
 
-    protected function getTextSearchCondition(array &$filter) {
-        if (!$this->textSearchFields || !isset($filter['text']) || !$filter['text']) {
+    protected function useTranslated(array &$options) {
+        $table = $this->getTable();
+        return $table->hasTranslationTable()
+            && isset($options['use_translated'])
+            && $options['use_translated'];
+    }
+
+    protected function getJoins(array &$options) {
+        $result = [];
+        if ($this->useTranslated($options)) {
+            $result[] = $this->getTranslationJoin();
+        }
+        return $result;
+    }
+
+    protected function getWhere(array &$options) {
+        $conditions = $this->getConditions($options);
+        return $conditions ? ' WHERE '.join(' AND ', $conditions) : '';
+    }
+
+    protected function getConditions(array &$options) {
+        $result = [];
+        if (isset($options['find_id'])) {
+            $table = $this->getTable();
+            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($options['find_id']);
+            $this->addSqlParams($params);
+            $result[] = $condition;
+        }
+        $condition = $this->getTextSearchCondition($options);
+        if ($condition) {
+            $result[] = $condition;
+        }
+        return $result;
+    }
+
+    protected function getTextSearchCondition(array &$options) {
+        if (!$this->textSearchFields || !isset($options['text']) || !$options['text']) {
             return '';
         }
-        $likeText = '%'.str_replace('%', '\%', $filter['text']).'%';
+        $likeText = '%'.str_replace('%', '\%', $options['text']).'%';
         $conditions = [];
         $params = [];
         foreach ($this->textSearchFields as $field) {
@@ -137,33 +180,28 @@ abstract class Query {
         return '('.join(' OR ', $conditions).')';
     }
 
-    protected function getWhere(array &$filter) {
-        $condition = $this->getTextSearchCondition($filter);
-        return $condition ? ' WHERE '.$condition : '';
-    }
-
-    protected function getOrder(array &$filter) {
-        if (!isset($filter['order_by']) || !isset($filter['order_dir'])) {
+    protected function getOrder(array &$options) {
+        if (!isset($options['order_by']) || !isset($options['order_dir'])) {
             return '';
         }
-        $field = $filter['order_by'];
+        $field = $options['order_by'];
         $table = $this->getTable();
         if (!in_array($field, $this->selectFields)) {
             return '';
         }
-        $direction = $filter['order_dir'] == 'asc' ? 'asc' : 'desc';
+        $direction = $options['order_dir'] == 'asc' ? 'asc' : 'desc';
         return ' ORDER BY '.$field.' '.$direction;
     }
     
-    protected function getLimit(array &$filter) {
-        if (!isset($filter['page']) || !isset($filter['page_limit'])) {
+    protected function getLimit(array &$options) {
+        if (!isset($options['page']) || !isset($options['page_limit'])) {
             return '';
         }
-        $page = (int)$filter['page'];
+        $page = (int)$options['page'];
         if ($page < 0) {
             $page = 0;
         }
-        $pageLimit = (int)$filter['page_limit'];
+        $pageLimit = (int)$options['page_limit'];
         if ($pageLimit < 1 || $pageLimit > 100) { // TODO: max page limit, default page limit
             $pageLimit = 25;
         }            
