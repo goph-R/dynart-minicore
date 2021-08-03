@@ -44,7 +44,7 @@ abstract class Query {
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
-    public function getSelect($fields, array &$options) {
+    protected function getSelect($fields, array $options) {
 
         $this->clearSqlParams();
         $this->options = $options;
