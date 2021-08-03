@@ -10,6 +10,7 @@ abstract class Query {
     protected $db;
     protected $sqlParams = [];
     protected $selectFields = [];
+    protected $options = [];
 
     protected $table;
     protected $textSearchFields = [];
@@ -20,44 +21,43 @@ abstract class Query {
     }
 
     public function findById($id, $translated=true) {
-        $this->clearSqlParams();
-        $options = [
+        $sql = $this->getSelect(null, [
             'find_id' => $id,
             'use_translated' => $translated,
-        ];
-        $sql = $this->getSelect(null, $options);
-        $sql .= $this->getWhere($options);
+        ]);
+        $sql .= $this->getWhere();
         $sql .= ' LIMIT 1';
         return $this->db->fetch($sql, $this->sqlParams);
     }
 
     public function findAll(array $options=[]) {
-        $this->clearSqlParams();
         $sql = $this->getSelect(null, $options);
-        $sql .= $this->getWhere($options);
-        $sql .= $this->getOrder($options);
-        $sql .= $this->getLimit($options);
+        $sql .= $this->getWhere();
+        $sql .= $this->getOrder();
+        $sql .= $this->getLimit();
         return $this->db->fetchAll($sql, $this->sqlParams);
     }
 
-    public function findAllCount(array $options) {
-        $this->clearSqlParams();
+    public function findAllCount(array $options=[]) {
         $sql = $this->getSelect(['COUNT(1)'], $options);
-        $sql .= $this->getWhere($options);
+        $sql .= $this->getWhere();
         return $this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
-    public function getSelect($fields=null, array $options=[]) {
+    public function getSelect($fields, array &$options) {
+
+        $this->clearSqlParams();
+        $this->options = $options;
         
         // use translated in default
-        if (!isset($options['use_translated'])) {
-            $options['use_translated'] = true;
+        if (!isset($this->options['use_translated'])) {
+            $this->options['use_translated'] = true;
         }
         
         // use all the fields in default
         $table = $this->getTable();
         if ($fields === null) {
-            $this->selectFields = $this->getAllFields($options);
+            $this->selectFields = $this->getAllFields($this->options);
             $fieldNames = join(', ', $this->escapeNames($this->selectFields));
         } else {
             $this->selectFields = $fields;
@@ -67,7 +67,7 @@ abstract class Query {
         // create the select        
         $tableName = $this->db->escapeName($table->getName());
         $sql = "SELECT $fieldNames FROM $tableName";
-        $sql .= $this->createJoins($options);
+        $sql .= $this->createJoins($this->options);
 
         return $sql;
     }
@@ -92,8 +92,8 @@ abstract class Query {
         return $result;
     }    
 
-    protected function createJoins(array &$options) {
-        $joins = $this->getJoins($options);
+    protected function createJoins() {
+        $joins = $this->getJoins();
         if (!$joins) {
             return '';
         }
@@ -108,45 +108,42 @@ abstract class Query {
         return $result;
     }
 
-    protected function getJoins(array &$options) {
+    protected function getJoins() {
         $result = [];
-        if ($this->useTranslated($options)) {
-            $result[] = [
-                'type' => 'LEFT',
-                'condition' => $this->getTranslationJoin()
-            ];
+        if ($this->useTranslated()) {
+            $result[] = $this->getTranslationJoin();
         }
         return $result;
     }
 
-    protected function getWhere(array &$options) {
-        $conditions = $this->getConditions($options);
+    protected function getWhere() {
+        $conditions = $this->getConditions();
         return $conditions ? ' WHERE '.join(' AND ', $conditions) : '';
     }    
 
-    protected function getConditions(array &$options) {
+    protected function getConditions() {
         $result = [];
-        if (isset($options['find_id'])) {
+        if (isset($this->options['find_id'])) {
             $table = $this->getTable();
-            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($options['find_id']);
+            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($this->options['find_id']);
             $this->addSqlParams($params);
             $result[] = $condition;
         }
-        $condition = $this->getTextSearchCondition($options);
+        $condition = $this->getTextSearchCondition();
         if ($condition) {
             $result[] = $condition;
         }
         return $result;
     }    
 
-    protected function getAllFields(array &$options) {
+    protected function getAllFields() {
         $result = [];
         $table = $this->getTable();
         $fields = $table->getFields();
         foreach ($fields as $field) {
             $result[] = $table->getName().'.'.$field;
         }
-        if ($this->useTranslated($options)) {
+        if ($this->useTranslated()) {
             $trTable = $table->getTranslationTable();
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
@@ -172,18 +169,18 @@ abstract class Query {
         return "$trTableName ON $trPrimaryKey = $primaryKey AND $trLocale = :tr_locale";
     }
 
-    protected function useTranslated(array &$options) {
+    protected function useTranslated() {
         $table = $this->getTable();
         return $table->hasTranslationTable()
-            && isset($options['use_translated'])
-            && $options['use_translated'];
+            && isset($this->options['use_translated'])
+            && $this->options['use_translated'];
     }
 
-    protected function getTextSearchCondition(array &$options) {
-        if (!$this->textSearchFields || !isset($options['text']) || !$options['text']) {
+    protected function getTextSearchCondition() {
+        if (!$this->textSearchFields || !isset($this->options['text']) || !$this->options['text']) {
             return '';
         }
-        $likeText = '%'.str_replace('%', '\%', $options['text']).'%';
+        $likeText = '%'.str_replace('%', '\%', $this->options['text']).'%';
         $conditions = [];
         $params = [];
         foreach ($this->textSearchFields as $field) {
@@ -194,32 +191,32 @@ abstract class Query {
         return '('.join(' OR ', $conditions).')';
     }
 
-    protected function getOrder(array &$options) {
-        if (!isset($options['order_by']) || !isset($options['order_dir'])) {
+    protected function getOrder() {
+        if (!isset($this->options['order_by']) || !isset($this->options['order_dir'])) {
             return '';
         }
-        $field = $options['order_by'];
+        $field = $this->options['order_by'];
         $table = $this->getTable();
         if (!in_array($field, $this->selectFields)) {
             return '';
         }
-        $direction = $options['order_dir'] == 'asc' ? 'asc' : 'desc';
+        $direction = $this->options['order_dir'] == 'asc' ? 'asc' : 'desc';
         return ' ORDER BY '.$field.' '.$direction;
     }
     
-    protected function getLimit(array &$options) {
-        if (!isset($options['page']) || !isset($options['page_limit'])) {
+    protected function getLimit() {
+        if (!isset($this->options['page']) || !isset($this->options['page_size'])) {
             return '';
         }
-        $page = (int)$options['page'];
+        $page = (int)$this->options['page'];
         if ($page < 0) {
             $page = 0;
         }
-        $pageLimit = (int)$options['page_limit'];
-        if ($pageLimit < 1 || $pageLimit > 100) { // TODO: max page limit, default page limit
-            $pageLimit = 25;
+        $pageSize = (int)$this->options['page_size'];
+        if ($pageSize < 1 || $pageSize > 100) { // TODO: max page size, default page size
+            $pageSize = 25;
         }            
-        $start = $page * $pageLimit;
-        return ' LIMIT '.$start.', '.$pageLimit;
+        $start = $page * $pageSize;
+        return ' LIMIT '.$start.', '.$pageSize;
     }
 }
