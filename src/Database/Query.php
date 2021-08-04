@@ -9,7 +9,7 @@ abstract class Query {
     protected $framework;
     protected $db;
     protected $sqlParams = [];
-    protected $selectFields = [];
+    protected $orderByFields = [];
     protected $options = [];
 
     protected $table;
@@ -30,8 +30,8 @@ abstract class Query {
         return $this->db->fetch($sql, $this->sqlParams);
     }
 
-    public function findAll(array $options=[]) {
-        $sql = $this->getSelect(null, $options);
+    public function findAll($fields=null, array $options=[]) {
+        $sql = $this->getSelect($fields, $options);
         $sql .= $this->getWhere();
         $sql .= $this->getOrder();
         $sql .= $this->getLimit();
@@ -39,9 +39,9 @@ abstract class Query {
     }
 
     public function findAllCount(array $options=[]) {
-        $sql = $this->getSelect(['COUNT(1)'], $options);
+        $sql = $this->getSelect([['COUNT(1)']], $options);
         $sql .= $this->getWhere();
-        return $this->db->fetchColumn($sql, $this->sqlParams);        
+        return (int)$this->db->fetchColumn($sql, $this->sqlParams);        
     }    
 
     protected function getSelect($fields, array $options) {
@@ -55,16 +55,23 @@ abstract class Query {
         }
         
         // use all the fields in default
-        $table = $this->getTable();
         if ($fields === null) {
-            $this->selectFields = $this->getAllFields($this->options);
-            $fieldNames = join(', ', $this->escapeNames($this->selectFields));
-        } else {
-            $this->selectFields = $fields;
-            $fieldNames = join(', ', $this->selectFields);
+            $fields = $this->getAllFields($this->options);
         }
+        $this->orderByFields = array_keys($fields);
+        $asFields = [];
+        foreach ($fields as $alias => $full) {
+            $full = is_array($full) ? $full[0] : $this->db->escapeName($full);
+            if (is_integer($alias)) {
+                $asFields[] = $full;
+            } else {
+                $asFields[] = $full.' AS '.$this->db->escapeName($alias);
+            }            
+        }
+        $fieldNames = join(', ', $asFields);
 
         // create the select        
+        $table = $this->getTable();
         $tableName = $this->db->escapeName($table->getName());
         $sql = "SELECT $fieldNames FROM $tableName";
         $sql .= $this->createJoins($this->options);
@@ -141,13 +148,13 @@ abstract class Query {
         $table = $this->getTable();
         $fields = $table->getFields();
         foreach ($fields as $field) {
-            $result[] = $table->getName().'.'.$field;
+            $result[$field] = $table->getName().'.'.$field;
         }
         if ($this->useTranslated()) {
             $trTable = $table->getTranslationTable();
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
-                $result[] = $trTable->getName().'.'.$trField;
+                $result[$trField] = $trTable->getName().'.'.$trField;
             }
         }
         return $result;
@@ -197,7 +204,7 @@ abstract class Query {
         }
         $field = $this->options['order_by'];
         $table = $this->getTable();
-        if (!in_array($field, $this->selectFields)) {
+        if (!in_array($field, $this->orderByFields)) {
             return '';
         }
         $direction = $this->options['order_dir'] == 'asc' ? 'asc' : 'desc';

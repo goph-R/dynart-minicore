@@ -4,11 +4,11 @@ namespace Dynart\Minicore;
 
 class Config {
 
-    private $environment;
+    private $env;
     private $data = [];
 
-    public function __construct($environment) {
-        $this->environment = $environment;
+    public function __construct($env) {
+        $this->env = $env;
     }
 
     public function load($path) {
@@ -19,29 +19,33 @@ class Config {
         }
         $iniData = parse_ini_file($path, true);
 
-        // include config
-        if (isset($iniData['include'])) {
-            foreach ($iniData['include'] as $name => $path) {
-                $this->load($path);
-            }
-            unset($iniData['include']);
-        }
+        $this->include($iniData);
+        
 
         // copy the data
-        foreach ($iniData as $environment => $data) {
-            if (!isset($this->data[$environment])) {
-                $this->data[$environment] = [];
+        foreach ($iniData as $env => $data) {
+            if (!isset($this->data[$env])) {
+                $this->data[$env] = [];
             }
-            foreach ($iniData[$environment] as $name => $value) {
-                $this->data[$environment][$name] = $value;
+            foreach ($iniData[$env] as $name => $value) {
+                $this->data[$env][$name] = $value;
             }
         }
 
     }
 
+    public function include(array &$iniData) {
+        if (isset($iniData['include'])) {
+            foreach ($iniData['include'] as $name => $path) {
+                $this->load($path);
+            }
+            unset($iniData['include']);
+        }        
+    }
+
     public function get($name, $defaultValue=null) {
         if ($this->exists($name)) {
-            return $this->data[$this->environment][$name];
+            return $this->data[$this->env][$name];
         }
         if ($this->existsInEnvironment($name, 'all')) {
             return $this->data['all'][$name];
@@ -50,16 +54,16 @@ class Config {
     }
 
     public function exists($name) {
-        return $this->existsInEnvironment($name, $this->environment);
+        return $this->existsInEnvironment($name, $this->env);
     }
 
-    public function existsInEnvironment($name, $environment) {
-        return isset($this->data[$environment])
-            && isset($this->data[$environment][$name]);
+    public function existsInEnvironment($name, $env) {
+        return isset($this->data[$env])
+            && isset($this->data[$env][$name]);
     }
 
     public function getEnvironment() {
-        return $this->environment;
+        return $this->env;
     }
 
 }

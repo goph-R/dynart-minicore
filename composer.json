@@ -1,11 +1,11 @@
 {
-    "name": "dynart/minicore",
-    "description": "A minimalist PHP framework.",
+    "name": "dynart/gears",
+    "description": "A webadmin project.",
     "type": "library",
     "license": "Apache-2.0",
     "autoload": {
         "psr-4": {
-            "Dynart\\Minicore\\": "src/"
+            "Dynart\\Gears\\": "src/"
         }
     },
     "authors": [

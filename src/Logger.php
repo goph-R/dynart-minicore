@@ -55,7 +55,7 @@ class Logger {
     }
 
     protected function log($label, $message) {
-        $text = date($this->dateFormat).' ['.$label.'] '.$message."\n";
+        $text = date($this->dateFormat).' ['.$label.'] '.$message."\n\n";
         $dir = dirname($this->path);
         if (!file_exists($dir)) {
             mkdir($dir, 0x755, true);
