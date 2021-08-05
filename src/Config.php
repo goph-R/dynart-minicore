@@ -13,14 +13,13 @@ class Config {
 
     public function load($path) {
 
-        // parse ini
         if (!file_exists($path)) {
             throw new FrameworkException("Couldn't load config: $path");
         }
+
         $iniData = parse_ini_file($path, true);
 
         $this->include($iniData);
-        
 
         // copy the data
         foreach ($iniData as $env => $data) {

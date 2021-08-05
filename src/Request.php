@@ -82,7 +82,7 @@ class Request {
     }
 
     public function has($name) {
-        return isset($this->data[$name]);
+        return array_key_exists($name, $this->data);
     }
 
     public function set($name, $value) {

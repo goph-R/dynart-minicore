@@ -44,6 +44,13 @@ abstract class Controller {
         $this->response->setContent($content);
     }
 
+    public function renderContent($path, $vars=[]) {
+        $this->view->fetch($path);
+        $content = $this->view->fetchBlock('content');
+        $scripts = $this->view->fetchBlock('scripts');
+        $this->response->setContent($content.$scripts);
+    }
+
     public function json($data) {
         $this->response->setContent(json_encode($data));
     }
