@@ -42,9 +42,6 @@ abstract class App {
     /** @var Helper */
     protected $helper;
 
-    /** @var Module[] */
-    //protected $modules = [];
-
     /** @var Middleware[] */
     protected $middlewares = [];
 
@@ -134,39 +131,6 @@ abstract class App {
         $params = $route->getMethodParameters();
         call_user_func_array([$object, $method], $params);        
     }
-
-    /*
-    protected function initModules() {
-        // TODO: dependency tree
-        foreach ($this->modules as $module) {
-            $module->init();
-        }
-    }    
-
-    public function addModule($moduleClass) {
-        $module = $this->framework->create($moduleClass);
-        $this->modules[$module->getId()] = $module;
-    }
-
-    public function hasModule($moduleId) {
-        return isset($this->modules[$moduleId]);
-    }
-
-    public function getModule($moduleId) {
-        if (!$this->hasModule($moduleId)) {
-            throw new RuntimeException("Can't get module: ".$moduleId);
-        }
-        return $this->modules[$moduleId];
-    }
-
-    public function getModulesFolder() {
-        return $this->config->get(self::CONFIG_MODULES_FOLDER);
-    }
-
-    public function getModulesUrl() {
-        return $this->config->get(self::CONFIG_MODULES_URL);
-    }
-    */
 
     public function getCoreFolder() {
         return $this->config->get(self::CONFIG_CORE_FOLDER);
