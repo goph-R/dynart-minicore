@@ -14,7 +14,6 @@ abstract class App {
     const CONFIG_MODULES_URL = 'app.modules_url';
 
     protected $configPath;
-    protected $routePath;
 
     /** @var Framework */
     protected $framework;
@@ -25,9 +24,6 @@ abstract class App {
     /** @var Router */
     protected $router;
     
-    /** @var RouteAliases */
-    protected $routeAliases;
-
     /** @var Config */
     protected $config;
 
@@ -47,44 +43,90 @@ abstract class App {
     protected $helper;
 
     /** @var Module[] */
-    protected $modules = [];
+    //protected $modules = [];
+
+    /** @var Middleware[] */
+    protected $middlewares = [];
 
     public function __construct($env='dev', $configPath='config.ini.php') {
         $this->configPath = $configPath;
         $this->framework = Framework::instance();
         $ns = '\Dynart\Minicore\\';
         $this->framework->add([
-            'config'        => [$ns.'Config', $env],
-            'logger'        => $ns.'Logger',
-            'database'      => [$ns.'Database', 'default'],
-            'request'       => $ns.'Request',
-            'response'      => $ns.'Response',
-            'router'        => $ns.'Router', // TODO
-            'routeAliases'  => $ns.'RouteAliases',
-            'view'          => $ns.'View', // TODO
-            'helper'        => $ns.'Helper',
-            'translation'   => $ns.'Translation',
+            'config'         => [$ns.'Config', $env],
+            'logger'         => $ns.'Logger',
+            'database'       => [$ns.'Database', 'default'],
+            'request'        => $ns.'Request',
+            'response'       => $ns.'Response',
+            'router'         => $ns.'Router', // TODO
+            'routeAliases'   => $ns.'RouteAliases',
+            'view'           => $ns.'View', // TODO
+            'helper'         => $ns.'Helper',
+            'translation'    => $ns.'Translation',
             // TODO: 'mailer'        => 'Mailer',
-            'userSession'   => $ns.'UserSession' // TODO
+            'userSession'    => $ns.'UserSession', // TODO
+            'localeResolver' => $ns.'LocaleResolverMiddleware'
         ]);
     }
 
     public function init() {
+
         $this->config = $this->framework->get('config');
         $this->config->load($this->configPath);
-        $this->logger = $this->framework->get('logger');
-        $this->initInstances();
-        $this->initRoutePath();
-        $this->initLocale();
-        $this->initModules();
+
+        $coreFolder = $this->getCoreFolder();
+
+        $this->logger = $this->framework->get('logger');        
+        $this->request = $this->framework->get('request');
+        $this->response = $this->framework->get('response');
+       
+        $this->translation = $this->framework->get('translation');
+        $this->translation->add('core', $coreFolder.'translations');
+
+        $this->router = $this->framework->get('router');
+
+        $this->helper = $this->framework->get('helper');
+        $this->helper->add(__FILE__, 'Helpers/view.php');
+        
+        $this->view = $this->framework->get('view');
+        $this->view->addFolder(':app', $coreFolder.'templates');
+        //$this->view->addFolder(':form', $coreFolder.'form/templates');
+        //$this->view->addFolder(':pager', $coreFolder.'pager/templates');
+
+        $this->addMiddleware($this->framework->get('localeResolver'));
+    }
+
+    public function addMiddleware(Middleware $middleware) {
+        $this->middlewares[] = $middleware;
+    }
+ 
+    public function runMiddlewares() {
+        foreach ($this->middlewares as $middleware) {
+            $middleware->run();
+        }        
     }
 
     public function run() {
-        $this->callRoute();
+        $route = $this->router->matchRoute($this->router->getPath(), $this->request->getMethod());
+        if (!$route) {
+            $this->framework->error(404);
+        }
+        foreach ($route->getParameters() as $name => $value) {
+            $this->request->set($name, $value);
+        }
+        $this->runMiddlewares();
+        $route->run();
         $this->response->send();
     }
- 
+
     /*
+    protected function initModules() {
+        // TODO: dependency tree
+        foreach ($this->modules as $module) {
+            $module->init();
+        }
+    }    
+
     public function addModule($moduleClass) {
         $module = $this->framework->create($moduleClass);
         $this->modules[$module->getId()] = $module;
@@ -122,10 +164,6 @@ abstract class App {
         return $this->config->get(SELF::CONFIG_PATH);
     }
 
-    public function getStaticUrl($path) {
-        return $this->getFullUrl(self::CONFIG_STATIC_URL, $path);
-    }
-
     public function getMediaPath($path='') {
         return $this->config->get(self::CONFIG_MEDIA_FOLDER).$path;
     }
@@ -134,83 +172,10 @@ abstract class App {
         return $this->getFullUrl(self::CONFIG_MEDIA_URL, $path);
     }  
     
-    protected function initInstances() {
-        
-        $coreFolder = $this->getCoreFolder();
-
-        $this->request = $this->framework->get('request');
-        $this->response = $this->framework->get('response');
-        $this->router = $this->framework->get('router');
-        $this->routeAliases = $this->framework->get('routeAliases');       
-        
-        $this->translation = $this->framework->get('translation');
-        $this->translation->add('core', $coreFolder.'translations');
-        
-        $this->helper = $this->framework->get('helper');
-        $this->helper->add(__FILE__, 'Helpers/view.php');
-        
-        $this->view = $this->framework->get('view');
-        $this->view->addFolder(':app', $coreFolder.'templates');
-        //$this->view->addFolder(':form', $coreFolder.'form/templates');
-        //$this->view->addFolder(':pager', $coreFolder.'pager/templates');
+    public function getStaticUrl($path) {
+        return $this->getFullUrl(self::CONFIG_STATIC_URL, $path);
     }
 
-    protected function initRoutePath() {
-        $routeParameter = $this->router->getParameter();
-        $this->routePath = $this->request->get($routeParameter);
-        if ($this->routeAliases->hasAlias($this->routePath)) {
-            $this->routePath = $this->routeAliases->getPath($this->routePath);
-        }    
-    }
-    
-    public function getRoutePath() {
-        return $this->routePath;
-    }
-
-    protected function initLocale() {
-        if (!$this->translation->hasMultiLocales()) {
-            return;
-        }
-        $this->translation->setLocale($this->getAcceptLocale());
-
-        // TODO: remove this static locale position! bad idea, instead:
-        // + use {variables} in routes
-        // + global prefix/postfix feature
-
-        $allLocales = $this->translation->getAllLocales();
-        foreach ($allLocales as $locale) {
-            $len = strlen($locale);
-            $routeStart = substr($this->routePath, 0, $len);
-            $startsWithLocale = $this->routePath == $locale || $routeStart.'/' == $locale.'/';
-            if (!$startsWithLocale) {
-                continue;
-            }
-            $this->translation->setLocale($locale);
-            $this->routePath = substr($this->routePath, $len + 1, strlen($this->routePath) - $len);
-            break;
-        }
-    }
-
-    protected function getAcceptLocale() {
-        $result = $this->translation->getLocale();
-        $acceptLanguage = $this->request->getServer('HTTP_ACCEPT_LANGUAGE');
-        if ($acceptLanguage) {
-            $locales = $this->translation->getAllLocales();
-            $acceptLocale = strtolower(substr($acceptLanguage, 0, 2));
-            if (in_array($acceptLocale, $locales)) {
-                $result = $acceptLocale;
-            }
-        }
-        return $result;
-    }
-
-    protected function initModules() {
-        // TODO: dependency tree
-        foreach ($this->modules as $module) {
-            $module->init();
-        }
-    }
-    
     protected function getFullUrl($configName, $path) {
         if (substr($path, 0, 1) == '/') {
             $path = $this->router->getBaseUrl().substr($path, 1);
@@ -221,13 +186,4 @@ abstract class App {
         return $this->config->get($configName).$path;
     }
     
-    protected function callRoute() {
-        $route = $this->router->get($this->routePath, $this->request->getMethod());
-        if ($route) {
-            $route->call();
-        } else {
-            $this->framework->error(404);
-        }
-    }
-
 }

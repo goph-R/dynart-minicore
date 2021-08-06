@@ -10,24 +10,35 @@ class Router {
     const CONFIG_PARAMETER = 'router.parameter';
 
     /** @var Framework */
-    private $framework;
+    protected $framework;
 
     /** @var Config */
-    private $config;
+    protected $config;
 
     /** @var RouteAliases */
-    private $aliases;
+    protected $aliases;
 
     /** @var Translation */
-    private $translation;
+    protected $translation;
 
-    private $routes = [];
+    /** @var RouteAliases */
+    protected $routeAliases;
+
+    protected $routes = [];
+    protected $path;
 
     public function __construct() {
         $this->framework = Framework::instance();
         $this->config = $this->framework->get('config');
         $this->aliases = $this->framework->get('routeAliases');
         $this->translation = $this->framework->get('translation');
+        $this->routeAliases = $this->framework->get('routeAliases');
+        
+        $request = $this->framework->get('request');
+        $this->path = $request->get($this->getParameter());
+        if ($this->routeAliases->hasAlias($this->path)) {
+            $this->path = $this->routeAliases->getPath($this->path);
+        }        
     }
 
     public function add($data) {
@@ -41,7 +52,7 @@ class Router {
      * @param string $method
      * @return Route
      */
-    public function get($path, $method) {
+    public function matchRoute($path, $method) {
         if ($this->aliases->hasAlias($path)) {
             $path = $this->aliases->getPath($path);
         }
@@ -67,27 +78,7 @@ class Router {
     
     public function getIndex() {
         return $this->config->get(self::CONFIG_INDEX);
-    }
-    
-    public function getCurrentUrlWithLocale($locale, $amp='&amp;') {
-        $request = $this->framework->get('request');
-        $params = $request->getAll();
-        $routeParam = $this->getParameter();
-        $path = '';
-        if (isset($params[$routeParam])) {
-            $path = $params[$routeParam];            
-        }
-        if ($this->translation->hasMultiLocales()) {
-            // remove locale from current path
-            $pos = strpos($path, '/');
-            if ($pos) {
-                $path = substr($path, $pos + 1, strlen($path) - $pos - 1);
-            } else {
-                $path = '';
-            }
-        }
-        return $this->getUrl($path, $params, $amp, $locale);
-    }    
+    } 
         
     public function getUrl($path=null, $params=[], $amp='&amp;', $locale=null) {
         $paramsSeparator = '';
@@ -101,24 +92,23 @@ class Router {
             $paramsString = http_build_query($params, '', $amp);
             $paramsSeparator = $this->usingRewrite() ? '?' : $amp;
         }
+
         $pathWithLocale = $this->getPathWithLocale($path, $locale);
         $prefix = $this->getPrefix($pathWithLocale);
         $pathAlias = $this->getPathAlias($pathWithLocale);
         $result = $prefix.$pathAlias.$paramsSeparator.$paramsString;
         return $result;
     }
-    
-    public function getPathWithLocale($path, $locale=null) {
+
+    protected function getPathWithLocale($path, $locale) {
         $result = $path;
         if ($this->translation->hasMultiLocales() && $path !== null) {
-            $postfix = $path ? '/'.$path : '';
-            $locale = $locale === null ? $this->translation->getLocale() : $locale;
-            $result = $locale.$postfix;
+            $path = str_replace('{locale}', $locale, $path);
         }
         return $result;
-    }
+    }    
 
-    private function addRoute($path, $controllerClass, $controllerMethod, $httpMethods) {
+    protected function addRoute($path, $controllerClass, $controllerMethod, $httpMethods) {
         $result = $this->framework->create([
             '\Dynart\Minicore\Route',
             $path, $controllerClass, $controllerMethod, $httpMethods
@@ -127,7 +117,7 @@ class Router {
         return $result;
     }
 
-    private function getPrefix($path) {
+    protected function getPrefix($path) {
         $result = $this->getBaseUrl();
         if (!$this->usingRewrite() && $path !== null) {
             $result .= $this->getIndex();
@@ -138,12 +128,16 @@ class Router {
         return $result;
     }
     
-    private function getPathAlias($path) {
+    protected function getPathAlias($path) {
         $result = $path;
         if ($this->aliases->hasPath($path)) {
             $result = $this->aliases->getAlias($path);
         }
         return $result;        
     }
+
+    public function getPath() {
+        return $this->path;
+    }    
 
 }
