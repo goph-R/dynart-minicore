@@ -1,6 +1,6 @@
 {
-    "name": "dynart/gears",
-    "description": "A webadmin project.",
+    "name": "dynart/minicore",
+    "description": "A minimalist PHP framework.",
     "type": "library",
     "license": "Apache-2.0",
     "autoload": {
