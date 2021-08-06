@@ -38,8 +38,22 @@ class Framework
         return self::$instance;
     }
 
-    public function add(array $declarations) {
+    public function add(array $newDeclarations, string $namespace='') {
+        $declarations = $newDeclarations;        
+        if ($namespace) {
+            $this->addNamespace($namespace, $declarations);
+        }
         $this->declarations = array_merge($this->declarations, $declarations);
+    }
+
+    protected function addNamespace(string $namespace, array &$declarations) {
+        foreach ($declarations as $index => $decl) {
+            if (is_array($decl)) {
+                $declarations[$index][0] = $namespace.'\\'.$decl[0];
+            } else if (is_string($decl)) {
+                $declarations[$index] = $namespace.'\\'.$decl;
+            }
+        }
     }
 
     /**
@@ -99,33 +113,6 @@ class Framework
         {
             throw new FrameworkException("Couldn't create instance of ".$class.", arguments were: ".json_encode($args));
         }        
-    }
-
-    public function redirect($path, $params=[]) {
-        if (substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://') {
-            $url = $path;
-        } else {
-            /** @var Router $router */
-            $router = $this->get('router');
-            $url = $router->getUrl($path, $params, '&');
-        }
-        header('Location: '.$url);
-        $this->finish();
-    }    
-
-    public function error($code, $content='') {
-        if (!$content) {
-            /** @var Config $config */
-            $config = $this->get('config');
-            $path = $config->get('app.error_static_folder').$code.'.html';
-            if (!file_exists($path)) {
-                $content = "Couldn't find error page for ".$code;
-            } else {
-                $content = file_get_contents($path);
-            }
-        }
-        http_response_code($code);
-        $this->finish($content);
     }
 
     public function finish($content='') {

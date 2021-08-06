@@ -48,22 +48,23 @@ abstract class App {
     public function __construct($env='dev', $configPath='config.ini.php') {
         $this->configPath = $configPath;
         $this->framework = Framework::instance();
-        $ns = '\Dynart\Minicore\\';
         $this->framework->add([
-            'config'         => [$ns.'Config', $env],
-            'logger'         => $ns.'Logger',
-            'database'       => [$ns.'Database', 'default'],
-            'request'        => $ns.'Request',
-            'response'       => $ns.'Response',
-            'router'         => $ns.'Router',
-            'routeAliases'   => $ns.'RouteAliases',
-            'helper'         => $ns.'Helper',
-            'translation'    => $ns.'Translation',
-            'localeResolver' => $ns.'LocaleResolver',
-            // TODO: 'mailer'        => 'Mailer',
-            'view'           => $ns.'View', // TODO
-            'userSession'    => $ns.'UserSession', // TODO
-        ]);
+            'config'         => ['Config', $env],
+            'logger'         => 'Logger',
+            'database'       => ['Database', 'default'],
+            'request'        => 'Request',
+            'response'       => 'Response',
+            'router'         => 'Router',
+            'routeAliases'   => 'RouteAliases',
+            'helper'         => 'Helper',
+            'translation'    => 'Translation',
+            'localeResolver' => 'LocaleResolver',
+            'mailer'         => 'Mailer',
+            'view'           => 'View',
+            'userSession'    => 'UserSession', // TODO: JWT
+        ],
+            '\Dynart\Minicore'
+        );
     }
 
     public function init() {
@@ -87,8 +88,8 @@ abstract class App {
         
         $this->view = $this->framework->get('view');
         $this->view->addFolder(':app', $coreFolder.'templates');
-        //$this->view->addFolder(':form', $coreFolder.'form/templates');
-        //$this->view->addFolder(':pager', $coreFolder.'pager/templates');
+        $this->view->addFolder(':form', $coreFolder.'templates');
+        //$this->view->addFolder(':pager', $coreFolder.'templates');
 
         $this->addMiddleware('localeResolver');
     }
@@ -100,7 +101,7 @@ abstract class App {
     public function run() {
         $route = $this->router->matchRoute($this->router->getPath());
         if (!$route || !in_array($this->request->getMethod(), $route->getHttpMethods())) {
-            $this->framework->error(404);
+            $this->error(404);
         }
         $this->router->setCurrentRoute($route);
         $this->setUrlParametersInRequest($route);
@@ -169,5 +170,28 @@ abstract class App {
         }
         return $prefix.$path;
     }
+
+    public function redirect($path, $params=[]) {
+        if (substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://') {
+            $url = $path;
+        } else {
+            $url = $this->router->getUrl($path, $params, '&');
+        }
+        header('Location: '.$url);
+        $this->finish();
+    }    
+
+    public function error($code, $content='') {
+        if (!$content) {
+            $path = $this->config->get('app.error_static_folder').$code.'.html';
+            if (!file_exists($path)) {
+                $content = "Couldn't find error page for ".$code;
+            } else {
+                $content = file_get_contents($path);
+            }
+        }
+        http_response_code($code);
+        $this->finish($content);
+    }    
     
 }
