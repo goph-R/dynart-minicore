@@ -18,8 +18,8 @@ class Mailer {
     const CONFIG_SMTP_SECURE = 'mailer.smtp_secure';
     const CONFIG_CHARSET = 'mailer.charset';
     const CONFIG_ENCODING = 'mailer.encoding';
-    const CONFIG_FROM_NAME = 'mailer.from.name';
-    const CONFIG_FROM_EMAIL = 'mailer.from.email';
+    const CONFIG_FROM_NAME = 'mailer.from_name';
+    const CONFIG_FROM_EMAIL = 'mailer.from_email';
 
     const DEFAULT_SMTP_AUTH = true;
     const DEFAULT_SMTP_SECURE = 'ssl';
