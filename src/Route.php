@@ -8,15 +8,16 @@ class Route {
     protected $httpMethods;
     protected $partCount;
     protected $parts;
-    protected $parameterNameByIndex = [];
-    protected $controllerClass;
+    protected $urlParameterNameByIndex = [];
+    protected $controllerName;
     protected $controllerMethod;
-    protected $parameters;
+    protected $urlParameters;
+    protected $methodParameters;
 
-    public function __construct($path, $controllerClass, $controllerMethod, $httpMethods) {
+    public function __construct(string $path, string $controllerName, string $controllerMethod, array $httpMethods) {
 
         $this->path = $path;
-        $this->controllerClass = $controllerClass;
+        $this->controllerName = $controllerName;
         $this->controllerMethod = $controllerMethod;
         $this->httpMethods = $httpMethods;
         $this->parts = explode('/', $path);
@@ -24,12 +25,12 @@ class Route {
         // store the part count
         $this->partCount = count($this->parts);
 
-        // store parameter names by index
+        // store URL parameter names by index
         foreach ($this->parts as $i => $part) {
             $found = [];
             preg_match('/{([a-z0-9_]+)}/', $part, $found);
             if (isset($found[1])) {
-                $this->parameterNameByIndex[$i] = $found[1];
+                $this->urlParameterNameByIndex[$i] = $found[1];
             }
         }
     }
@@ -38,38 +39,47 @@ class Route {
         return $this->path;
     }
 
-    public function getParameters() {
-        return $this->parameters;
+    public function getUrlParameters() {
+        return $this->urlParameters;
     }
 
-    public function match($path, $httpMethod) {
-        if (!in_array($httpMethod, $this->httpMethods)) {
-            return false;
-        }
+    public function getMethodParameters() {
+        return $this->methodParameters;
+    }
+    
+    public function getControllerName() {
+        return $this->controllerName;
+    }
+
+    public function getControllerMethod() {
+        return $this->controllerMethod;
+    }
+
+    public function getHttpMethods() {
+        return $this->httpMethods;
+    }
+
+    public function match($path) {
         $currentParts = explode('/', $path);
         if ($this->partCount != count($currentParts)) {
             return false;
         }
-        $this->parameters = [];
-        foreach ($this->parts as $i => $part) {
-            if (isset($this->parameterNameByIndex[$i])) {
-                $name = $this->parameterNameByIndex[$i];
-                $this->parameters[$name] = $currentParts[$i];
-
+        $this->urlParameters = [];
+        $this->methodParameters = [];
+        foreach ($this->parts as $i => $part) {            
+            if (isset($this->urlParameterNameByIndex[$i])) {
+                // fetch an URL parameter
+                $name = $this->urlParameterNameByIndex[$i];
+                $this->urlParameters[$name] = $currentParts[$i];                
+            } else if ($part == '?') {
+                // fetch a method parameter
+                $this->methodParameters[] = $currentParts[$i];
             } else if ($part != $currentParts[$i]) {
+                // no matching, return false
                 return false;
             }
         }
         return true;
-    }
-
-    public function run() {
-        $framework = Framework::instance();
-        $controller = $framework->get($this->controllerClass);
-        if (!method_exists($controller, $this->controllerMethod)) {
-            throw new FrameworkException('The method '.get_class($controller).'::'.$this->controllerMethod." doesn't exist.");
-        }
-        call_user_func_array([$controller, $this->controllerMethod], array_values($this->parameters));
     }
 
 }

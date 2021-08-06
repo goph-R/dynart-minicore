@@ -85,10 +85,7 @@ class View {
     }
 
     public function fetchBlock($name) {
-        if ($this->hasBlock($name)) {
-            return $this->blocks[$name];
-        }
-        return '';
+        return $this->hasBlock($name) ? $this->blocks[$name] : '';
     }
 
     public function useLayout($path) {
@@ -129,6 +126,17 @@ class View {
             $content .= $this->fetchWithLayout($path, $vars, $content);
         }
         return $content;
+    }
+
+    public function fetchScripts() {
+        $result = '';
+        foreach ($this->getScripts() as $script) {
+            $result .= script($script);
+        }
+        if ($this->hasBlock('scripts')) {
+            $result .= $this->fetchBlock('scripts');
+        }
+        return $result;        
     }
 
     private function tryToInclude($__path, $__vars=[]) {

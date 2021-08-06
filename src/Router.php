@@ -7,7 +7,8 @@ class Router {
     const CONFIG_INDEX = 'router.index';
     const CONFIG_BASE_URL = 'router.base_url';
     const CONFIG_USE_REWRITE = 'router.use_rewrite';
-    const CONFIG_PARAMETER = 'router.parameter';
+    const CONFIG_PARAMETER = 'router.parameter';    
+    const CONFIG_PATH_PREFIX = 'router.path_prefix';
 
     /** @var Framework */
     protected $framework;
@@ -24,8 +25,14 @@ class Router {
     /** @var RouteAliases */
     protected $routeAliases;
 
+    /** @var LocaleResolverMiddleware */
+    protected $localeResolver;
+
+    protected $routeClass = '\Dynart\Minicore\Route';
     protected $routes = [];
     protected $path;
+    protected $currentRoute;
+    protected $prefixVariables = [];
 
     public function __construct() {
         $this->framework = Framework::instance();
@@ -33,12 +40,18 @@ class Router {
         $this->aliases = $this->framework->get('routeAliases');
         $this->translation = $this->framework->get('translation');
         $this->routeAliases = $this->framework->get('routeAliases');
-        
+        $this->localeResolver = $this->framework->get('localeResolver');
+
+        // set the path, if it's an alias, get the real path
         $request = $this->framework->get('request');
-        $this->path = $request->get($this->getParameter());
+        $this->path = $request->get($this->getParameter(), '');
         if ($this->routeAliases->hasAlias($this->path)) {
             $this->path = $this->routeAliases->getPath($this->path);
         }        
+    }
+
+    public function addPrefixVariable(string $name, array $callable) {
+        $this->prefixVariables['{'.$name.'}'] = $callable;
     }
 
     public function add($data) {
@@ -52,16 +65,30 @@ class Router {
      * @param string $method
      * @return Route
      */
-    public function matchRoute($path, $method) {
+    public function matchRoute(string $path) {
+        if (!$path) {
+            $path = $this->getPathPrefix();
+        }
         if ($this->aliases->hasAlias($path)) {
             $path = $this->aliases->getPath($path);
         }
         foreach ($this->routes as $route) {
-            if ($route->match($path, $method)) {
+            if ($route->match($path)) {
                 return $route;
             }
         }
         return null;
+    }
+
+    public function setCurrentRoute(Route $route) {
+        $this->currentRoute = $route;        
+    }
+
+    /**
+     * @return Route
+     */
+    public function getCurrentRoute() {
+        return $this->currentRoute;
     }
 
     public function getParameter() {
@@ -78,53 +105,59 @@ class Router {
     
     public function getIndex() {
         return $this->config->get(self::CONFIG_INDEX);
-    } 
+    }
+
+    public function getPathPrefix() {
+        return $this->config->get(self::CONFIG_PATH_PREFIX);
+    }
         
-    public function getUrl($path=null, $params=[], $amp='&amp;', $locale=null) {
+    public function getUrl($path=null, $params=[], $amp='&amp;') {
         $paramsSeparator = '';
-        $paramsString = '';
-        $routeParam = $this->getParameter();
+        $paramsString = '';        
         if ($params) {
-            // remove route param if exists
+            // remove route param if exists, we will add it in 'getPrefix'
+            $routeParam = $this->getParameter();
             if (isset($params[$routeParam])) {
                 unset($params[$routeParam]);
             }
             $paramsString = http_build_query($params, '', $amp);
-            $paramsSeparator = $this->usingRewrite() ? '?' : $amp;
+            $paramsSeparator = ($this->usingRewrite() || !$path) && !$this->getPathPrefix() ? '?' : $amp;
         }
-
-        $pathWithLocale = $this->getPathWithLocale($path, $locale);
-        $prefix = $this->getPrefix($pathWithLocale);
-        $pathAlias = $this->getPathAlias($pathWithLocale);
-        $result = $prefix.$pathAlias.$paramsSeparator.$paramsString;
+        $prefix = $this->getPrefix($path);
+        $path = $this->getPathAlias($path);
+        $result = $prefix.$path.$paramsSeparator.$paramsString;
         return $result;
     }
 
-    protected function getPathWithLocale($path, $locale) {
-        $result = $path;
-        if ($this->translation->hasMultiLocales() && $path !== null) {
-            $path = str_replace('{locale}', $locale, $path);
-        }
-        return $result;
-    }    
-
-    protected function addRoute($path, $controllerClass, $controllerMethod, $httpMethods) {
+    protected function addRoute(string $path, string $controllerName, string $controllerMethod, array $httpMethods) {
+        $path = $this->getPathPrefix().$path;
         $result = $this->framework->create([
-            '\Dynart\Minicore\Route',
-            $path, $controllerClass, $controllerMethod, $httpMethods
+            $this->routeClass,
+            $path, $controllerName, $controllerMethod, $httpMethods
         ]);
         $this->routes[$path] = $result;
         return $result;
     }
 
     protected function getPrefix($path) {
+
+        // set up the path prefix with variables first
+        $routePrefix = $this->getPathPrefix();
+        foreach ($this->prefixVariables as $name => $callable) {
+            $value = call_user_func($callable);
+            $routePrefix = str_replace($name, $value, $routePrefix);
+        }
+        
+        // return with the prefix (index.dev.php?route=en/something)
         $result = $this->getBaseUrl();
         if (!$this->usingRewrite() && $path !== null) {
             $result .= $this->getIndex();
-            if ($path) {
+            if ($path || $routePrefix) {
                 $result .= '?'.$this->getParameter().'=';
             }
         }
+        $result .= $routePrefix;
+
         return $result;
     }
     

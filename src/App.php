@@ -58,14 +58,14 @@ abstract class App {
             'database'       => [$ns.'Database', 'default'],
             'request'        => $ns.'Request',
             'response'       => $ns.'Response',
-            'router'         => $ns.'Router', // TODO
+            'router'         => $ns.'Router',
             'routeAliases'   => $ns.'RouteAliases',
-            'view'           => $ns.'View', // TODO
             'helper'         => $ns.'Helper',
             'translation'    => $ns.'Translation',
+            'localeResolver' => $ns.'LocaleResolver',
             // TODO: 'mailer'        => 'Mailer',
+            'view'           => $ns.'View', // TODO
             'userSession'    => $ns.'UserSession', // TODO
-            'localeResolver' => $ns.'LocaleResolverMiddleware'
         ]);
     }
 
@@ -93,30 +93,46 @@ abstract class App {
         //$this->view->addFolder(':form', $coreFolder.'form/templates');
         //$this->view->addFolder(':pager', $coreFolder.'pager/templates');
 
-        $this->addMiddleware($this->framework->get('localeResolver'));
+        $this->addMiddleware('localeResolver');
     }
 
-    public function addMiddleware(Middleware $middleware) {
-        $this->middlewares[] = $middleware;
+    public function addMiddleware($middlewareDeclaration) {
+        $this->middlewares[] = $middlewareDeclaration;
     }
  
-    public function runMiddlewares() {
-        foreach ($this->middlewares as $middleware) {
+    public function run() {
+        $route = $this->router->matchRoute($this->router->getPath());
+        if (!$route || !in_array($this->request->getMethod(), $route->getHttpMethods())) {
+            $this->framework->error(404);
+        }
+        $this->router->setCurrentRoute($route);
+        $this->setUrlParametersInRequest($route);
+        $this->runMiddlewares();
+        $this->runRoute($route);
+        $this->response->send();
+    }
+
+    protected function setUrlParametersInRequest(Route $route) {
+        foreach ($route->getUrlParameters() as $name => $value) {
+            $this->request->set($name, $value);
+        }        
+    }
+
+    protected function runMiddlewares() {
+        foreach ($this->middlewares as $middlewareDeclaration) {
+            $middleware = $this->framework->get($middlewareDeclaration);
             $middleware->run();
         }        
     }
 
-    public function run() {
-        $route = $this->router->matchRoute($this->router->getPath(), $this->request->getMethod());
-        if (!$route) {
-            $this->framework->error(404);
+    protected function runRoute(Route $route) {
+        $object = $this->framework->get($route->getControllerName());
+        $method = $route->getControllerMethod();
+        if (!method_exists($object, $method)) {
+            throw new FrameworkException('The method '.get_class($object).'::'.$method." doesn't exist.");
         }
-        foreach ($route->getParameters() as $name => $value) {
-            $this->request->set($name, $value);
-        }
-        $this->runMiddlewares();
-        $route->run();
-        $this->response->send();
+        $params = $route->getMethodParameters();
+        call_user_func_array([$object, $method], $params);        
     }
 
     /*
@@ -164,26 +180,30 @@ abstract class App {
         return $this->config->get(SELF::CONFIG_PATH);
     }
 
-    public function getMediaPath($path='') {
+    public function getMediaPath(string $path='') {
         return $this->config->get(self::CONFIG_MEDIA_FOLDER).$path;
     }
 
-    public function getMediaUrl($path='') {
+    public function getMediaUrl(string $path='') {
         return $this->getFullUrl(self::CONFIG_MEDIA_URL, $path);
     }  
     
-    public function getStaticUrl($path) {
+    public function getStaticUrl(string $path) {
         return $this->getFullUrl(self::CONFIG_STATIC_URL, $path);
     }
 
-    protected function getFullUrl($configName, $path) {
-        if (substr($path, 0, 1) == '/') {
-            $path = $this->router->getBaseUrl().substr($path, 1);
+    protected function getFullUrl(string $configName, string $path) {
+        if (substr($path, 0, 1) == '~') {
+            $path = $this->router->getBaseUrl().substr($path, 2);
         }
         if (strpos($path, 'https://') === 0 || strpos($path, 'http://') === 0) {
             return $path;
         }
-        return $this->config->get($configName).$path;
+        $prefix = $this->config->get($configName);
+        if (substr($prefix, 0, 1) == '~') {
+            $prefix = $this->router->getBaseUrl().substr($prefix, 2);
+        }
+        return $prefix.$path;
     }
     
 }

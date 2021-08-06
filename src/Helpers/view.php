@@ -13,29 +13,29 @@ function route_url($path=null, $params=[], $amp='&amp;') {
 }
 
 function css($src, $media='all') {
-    return '<link rel="stylesheet" type="text/css" href="'.$src.'" media="'.$media.'">'."\n";
+    return '<link rel="stylesheet" type="text/css" href="'.static_url($src).'" media="'.$media.'">'."\n";
 }
 
 function script($src) {
-    return '<script src="'.$src.'" type="text/javascript"></script>'."\n";
+    return '<script src="'.static_url($src).'" type="text/javascript"></script>'."\n";
 }
 
 function use_css($src, $media='all') {
     $view = Framework::instance()->get('view');
-    $view->addStyle(static_url($src), $media);
+    $view->addStyle($src, $media);
+}
+function use_script($src) {
+    $view = Framework::instance()->get('view');
+    $view->addScript($src);
 }
 
+/*
 function use_module_css($moduleId, $src, $media='all') {
     $framework = Framework::instance();
     $view = $framework->get('view');
     $app = $framework->get('app');
     $module = $app->getModule($moduleId);
     $view->addStyle($module->getUrl().$src, $media);
-}
-
-function use_script($src) {
-    $view = Framework::instance()->get('view');
-    $view->addScript(static_url($src));
 }
 
 function use_module_script($moduleId, $src) {
@@ -45,17 +45,11 @@ function use_module_script($moduleId, $src) {
     $module = $app->getModule($moduleId);
     $view->addScript($module->getUrl().$src);
 }
+*/
 
 function fetch_scripts() {
     $view = Framework::instance()->get('view');
-    $result = '';
-    foreach ($view->getScripts() as $script) {
-        $result .= script($script);
-    }
-    if ($view->hasBlock('scripts')) {
-        $result .= $view->fetchBlock('scripts');
-    }
-    return $result;
+    return $view->fetchScripts();
 }
 
 function fetch_styles() {
