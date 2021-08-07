@@ -26,7 +26,6 @@ class Response {
     }
 
     public function send() {
-        header('Authorization: Bearer something');
         foreach ($this->headers as $name => $value) {
             if ($value !== null && $value !== '') {
                 header($name . ': ' . $value);

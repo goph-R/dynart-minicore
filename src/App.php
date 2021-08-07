@@ -56,12 +56,14 @@ abstract class App {
             'response'       => 'Response',
             'router'         => 'Router',
             'routeAliases'   => 'RouteAliases',
-            'helper'         => 'Helper',
             'translation'    => 'Translation',
             'localeResolver' => 'LocaleResolver',
             'mailer'         => 'Mailer',
             'view'           => 'View',
+            'helper'         => 'Helper',            
             'userSession'    => 'UserSession', // TODO: JWT
+            'inputTypes'     => 'Form\InputTypes',
+            'validatorTypes' => 'Form\ValidatorTypes',
         ],
             '\Dynart\Minicore'
         );
@@ -70,7 +72,7 @@ abstract class App {
     public function init() {
 
         $this->config = $this->framework->get('config');
-        $this->config->load($this->configPath);
+        $this->config->load($this->configPath); // TODO: config cache?
 
         $coreFolder = $this->getCoreFolder();
 
@@ -79,7 +81,7 @@ abstract class App {
         $this->response = $this->framework->get('response');
        
         $this->translation = $this->framework->get('translation');
-        $this->translation->add('core', $coreFolder.'translations');
+        $this->translation->add('core', $coreFolder.'translations/');
 
         $this->router = $this->framework->get('router');
 
@@ -87,8 +89,8 @@ abstract class App {
         $this->helper->add(__FILE__, 'Helpers/view.php');
         
         $this->view = $this->framework->get('view');
-        $this->view->addFolder(':app', $coreFolder.'templates');
-        $this->view->addFolder(':form', $coreFolder.'templates');
+        $this->view->addFolder(':app', $coreFolder.'templates/');
+        $this->view->addFolder(':form', $coreFolder.'templates/');
         //$this->view->addFolder(':pager', $coreFolder.'templates');
 
         $this->addMiddleware('localeResolver');
@@ -99,15 +101,21 @@ abstract class App {
     }
  
     public function run() {
+        $route = $this->initCurrentRoute();
+        $this->setUrlParametersInRequest($route);
+        $this->runMiddlewares();
+        $this->runRoute($route);
+        $this->response->send();
+    }
+
+
+    public function initCurrentRoute() {
         $route = $this->router->matchRoute($this->router->getPath());
         if (!$route || !in_array($this->request->getMethod(), $route->getHttpMethods())) {
             $this->error(404);
         }
         $this->router->setCurrentRoute($route);
-        $this->setUrlParametersInRequest($route);
-        $this->runMiddlewares();
-        $this->runRoute($route);
-        $this->response->send();
+        return $route;      
     }
 
     protected function setUrlParametersInRequest(Route $route) {
@@ -134,7 +142,11 @@ abstract class App {
     }
 
     public function getCoreFolder() {
-        return $this->config->get(self::CONFIG_CORE_FOLDER);
+        $path = $this->config->get(self::CONFIG_CORE_FOLDER);
+        if (substr($path, 0, 1) == '~') {
+            $path = $this->getPath().substr($path, 2);
+        }
+        return $path;
     }
 
     public function getCacheFolder() {
@@ -158,9 +170,6 @@ abstract class App {
     }
 
     protected function getFullUrl(string $configName, string $path) {
-        if (substr($path, 0, 1) == '~') {
-            $path = $this->router->getBaseUrl().substr($path, 2);
-        }
         if (strpos($path, 'https://') === 0 || strpos($path, 'http://') === 0) {
             return $path;
         }
@@ -168,6 +177,10 @@ abstract class App {
         if (substr($prefix, 0, 1) == '~') {
             $prefix = $this->router->getBaseUrl().substr($prefix, 2);
         }
+        else if (substr($path, 0, 1) == '~') {
+            $path = $this->router->getBaseUrl().substr($path, 2);
+        }
+
         return $prefix.$path;
     }
 

@@ -1,0 +1,15 @@
+<?php if (!$input->isHidden()): ?>
+    <div class="form-input" id="form_input_<?= $input->getId() ?>">
+        <?php if ($input->hasError()): ?>
+            <?= $this->fetch(':form/form-error', ['error' => $input->getError()]) ?>
+        <?php endif ?>
+        <?= $input->fetch() ?>
+        <?php if ($input->getDescription()): ?>
+            <div class="form-description">
+                <?= $input->getDescription() ?>
+            </div>
+        <?php endif ?>
+    </div>
+<?php else: ?>
+    <?= $input->fetch() ?>
+<?php endif ?>

@@ -94,7 +94,7 @@ class Framework
             $class = array_shift($declaration);
             $args = $declaration;
         } else {
-            throw new FrameworkException("Declaration is not a string or an array.");            
+            throw new FrameworkException("Declaration is not a string or an array: ".json_encode($declaration));            
         }
         return [$class, $args];
     }
@@ -111,7 +111,8 @@ class Framework
         }
         catch (\ReflectionException $e)
         {
-            throw new FrameworkException("Couldn't create instance of ".$class.", arguments were: ".json_encode($args));
+            throw $e;
+            //throw new FrameworkException("Couldn't create instance of ".$class.", arguments were: ".json_encode($args));
         }        
     }
 
