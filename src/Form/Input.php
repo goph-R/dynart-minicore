@@ -4,7 +4,7 @@ namespace Dynart\Minicore\Form;
 
 use Dynart\Minicore\Framework;
 
-abstract class Input { // TODO: extends Widget?
+abstract class Input {
 
     /** @var View */
     protected $view;
@@ -18,35 +18,29 @@ abstract class Input { // TODO: extends Widget?
     /** @var Config */
     protected $config;
 
-    protected $name;
-    protected $description;
-    protected $error;
+    // logic
+    protected $name = '';
     protected $defaultValue;
-    protected $scripts = [];
-    protected $styles = [];
-    protected $classes = [];
     protected $value;
     protected $trimValue = true;
     protected $required = true;
-    protected $label = '';
-    protected $hidden = false; // TODO: properties?
-    protected $locale = null; // TODO: properties?
-    protected $bind = true;
-    protected $rowBegin = true; // TODO: Form::startRow() ?
-    protected $rowEnd = true; // TODO: Form::endRow() ?
-    protected $attributes = [];
-
-    /*
-
-    Input::setProperty()?
-    $this->setProperty('label')
-    Input::getProperty()?
-
-    */
-
     protected $mustValidate = false;
     protected $file = false;
+    protected $locale = null;
     protected $readOnly = false;
+    protected $bind = true;
+
+    // view
+    protected $label = '';
+    protected $description = '';
+    protected $error = '';
+    protected $rowBegin = true; // TODO: Form::startRow() ?
+    protected $rowEnd = true; // TODO: Form::endRow() ?
+    protected $hidden = false;
+    protected $scripts = [];
+    protected $styles = [];
+    protected $classes = [];
+    protected $attributes = [];
     
     abstract public function fetch();
 
@@ -179,7 +173,7 @@ abstract class Input { // TODO: extends Widget?
         return $classes;
     }
 
-    public function getClassHtml() { // TODO: fetchClass()?
+    public function getClassHtml() { // TODO: fetchClasses()?
         $classes = $this->getClasses();
         return $classes ? ' class="'.join(' ', $classes).'"' : '';
     }
@@ -228,15 +222,15 @@ abstract class Input { // TODO: extends Widget?
         return $this->label;
     }
 
-    public function getDefaultValue() { // $input->get('default_value');
+    public function getDefaultValue() {
         return $this->defaultValue;
     }
 
-    public function isHidden() { // $input->is('hidden');
+    public function isHidden() {
         return $this->hidden;
     }
 
-    public function setHidden($value) { // $input->set('hidden', true);
+    public function setHidden($value) {
         $this->hidden = $value;
     }
 

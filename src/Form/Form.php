@@ -124,6 +124,14 @@ class Form {
         return $result;
     }
     
+    public function getInputErrors() {
+        $result = [];
+        foreach ($this->inputs as $name => $input) {
+            $result[$name] = $input->getError();
+        }
+        return $result;
+    }
+
     public function hasInput($inputName) {
         return isset($this->inputs[$inputName]);
     }
