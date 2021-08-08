@@ -39,7 +39,7 @@ abstract class Input {
     protected $hidden = false;
     protected $scripts = [];
     protected $styles = [];
-    protected $classes = [];
+    protected $classes = ['form-control'];
     protected $attributes = [];
     
     abstract public function fetch();

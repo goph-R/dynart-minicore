@@ -7,11 +7,12 @@ use Dynart\Minicore\Form\Input;
 class CheckboxGroup extends Input {
 
     protected $defaultValue = [];
+    protected $classes = ['checkbox'];
 
     private $checks;
     private $labels;
 
-    public function __construct($name, $labelsByValues=[], $checks=[]) {        
+    public function __construct($name, $checks=[], $labelsByValues=[]) {        
         parent::__construct($name, null);
         $this->labels = $labelsByValues;
         $this->trimValue = false;

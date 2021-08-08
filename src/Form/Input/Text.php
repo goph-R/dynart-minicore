@@ -9,6 +9,7 @@ class Text extends Input {
     protected $type = 'text';    
     protected $placeholder = '';
     protected $autocomplete = true;
+    protected $classes = ['input'];
 
     public function setPlaceholder($placeholder) {
         $this->setAttribute('placeholder', $placeholder);

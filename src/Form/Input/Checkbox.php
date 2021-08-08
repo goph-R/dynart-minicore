@@ -10,6 +10,8 @@ class Checkbox extends Input {
     private $checked;
     private $text;
 
+    protected $classes = ['checkbox'];
+
     public function __construct($name, $defaultValue='', $label='', $checked=false) {
         parent::__construct($name, $defaultValue);
         $framework = Framework::instance();
@@ -31,7 +33,7 @@ class Checkbox extends Input {
     public function fetch() {
         $result = '';
         if ($this->text) {
-            $result = '<label'.$this->getClassHtml().'>';
+            $result .= '<label class="form-check-label">';
         }
         $result .= '<input type="checkbox"';
         $result .= ' id="'.$this->getId().'"';
@@ -44,7 +46,7 @@ class Checkbox extends Input {
         }
         $result .= '>';
         if ($this->text) {
-            $result .= "\n".$this->text.'</label>';
+            $result .= $this->view->escape($this->text).'</label>';
         }
         return $result;
     }

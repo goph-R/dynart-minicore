@@ -8,14 +8,21 @@ class File extends Input {
     
     protected $trimValue = false;
     protected $file = true;
+    protected $classes = ['file-input'];
     
     public function fetch() {
-        $result = '<input type="file"';
+        $result = '<div class="file"><label class="file-label">';
+        $result .= '<input type="file"';
         $result .= ' id="'.$this->getId().'"';
         $result .= ' name="'.$this->form->getName().'['.$this->getName().']"';
         $result .= $this->getClassHtml();
         $result .= $this->getAttributesHtml();
         $result .= '>';
+        $result .= '<span class="file-cta">';
+        $result .= '<span class="file-icon"><i class="fas fa-upload"></i></span>';
+        $result .= '<span class="file-label">'.text('bulma', 'choose_a_file').'</span>';
+        $result .= '</span>';
+        $result .= '</label></div>';
         return $result;
     }
 

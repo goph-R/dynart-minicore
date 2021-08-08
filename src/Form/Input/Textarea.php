@@ -8,6 +8,7 @@ class Textarea extends Input {
 
     protected $type = 'text';    
     protected $placeholder = '';
+    protected $classes = ['textarea'];
 
     public function __construct($name, $defaultValue = '') {
         parent::__construct($name, $defaultValue);

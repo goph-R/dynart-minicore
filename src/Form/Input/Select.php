@@ -14,7 +14,8 @@ class Select extends Input {
     }
 
     public function fetch() {
-        $result = '<select';
+        $result = '<div class="select '.join(' ', $this->getClasses()).'">';
+        $result .= '<select';
         $result .= ' id="'.$this->getId().'"';
         $result .= ' name="'.$this->form->getName().'['.$this->getName().']"';
         $result .= $this->getAttributesHtml();
@@ -22,6 +23,7 @@ class Select extends Input {
         $result .= '>';
         $result .= $this->fetchRecursive($this->options, null);
         $result .= '</select>';
+        $result .= '</div>';
         return $result;
     }
 

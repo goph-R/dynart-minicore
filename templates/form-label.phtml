@@ -1,6 +1,6 @@
 <?php if ($input->getLabel() !== null): ?>
-    <div class="form-label" id="form_label_<?= $input->getId() ?>">
-        <label for="<?= $input->getId() ?>">
+    <div class="field-label">
+        <label class="label" for="<?= $input->getId() ?>">
             <?= $input->getLabel() ?><?php if ($input->isRequired()): ?>*<?php endif ?>
         </label>
     </div>

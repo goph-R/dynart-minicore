@@ -6,6 +6,8 @@ use Dynart\Minicore\Form\Input;
 
 class Submit extends Input {
 
+    protected $classes = ['button', 'is-link'];
+
     public function __construct($name, $defaultValue = '') {
         parent::__construct($name, $defaultValue);
         $this->required = false;

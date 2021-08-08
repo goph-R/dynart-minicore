@@ -1,7 +1,5 @@
-<?php if ($form->hasErrors()): ?>
-    <div class="form-errors">
-        <?php foreach ($form->getErrors() as $error): ?>
-            <?= $this->fetch(':form/form-error', ['error' => $error]) ?>
-        <?php endforeach ?>
+<?php foreach ($form->getErrors() as $error): ?>
+    <div class="notification is-danger">
+        <?= $error ?>
     </div>
-<?php endif ?>
+<?php endforeach ?>

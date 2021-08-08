@@ -1,4 +1,4 @@
 <?= $this->fetch(':form/form-errors', ['form' => $form]) ?>
 <?php foreach ($form->getInputs() as $input): ?>
-    <?= $this->fetch(':form/form-row', ['input' => $input]) ?>
+    <?= $this->fetch(':form/form-group', ['input' => $input]) ?>
 <?php endforeach ?>

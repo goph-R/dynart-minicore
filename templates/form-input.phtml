@@ -1,13 +1,17 @@
 <?php if (!$input->isHidden()): ?>
-    <div class="form-input" id="form_input_<?= $input->getId() ?>">        
-        <?= $this->fetch(':form/form-error', ['error' => $input->getError()]) ?>
-        <?= $input->fetch() ?>
-        <?php if ($input->getDescription()): ?>
-            <div class="form-description">
-                <?= $input->getDescription() ?>
+    <?php if ($input->hasRowBegin()): ?>
+        <div class="field-body">
+            <div class="field<?= !$input->hasRowEnd() ? ' has-addons' : '' ?>">
+    <?php endif ?>
+            <div class="control">
+                <?= $input->fetch() ?>
             </div>
-        <?php endif ?>
-    </div>
+            <p class="help is-danger"><?= $input->getError() ?></p>
+            <p class="help"><?= $input->getDescription() ?></p>
+    <?php if ($input->hasRowEnd()): ?>
+            </div>
+        </div>
+    <?php endif ?>
 <?php else: ?>
     <?= $input->fetch() ?>
 <?php endif ?>
