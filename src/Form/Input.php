@@ -18,33 +18,26 @@ abstract class Input {
     /** @var Config */
     protected $config;
 
-    // logic
     protected $name = '';
-    protected $defaultValue;
     protected $value;
-    protected $trimValue = true;
-    protected $required = true;
-    protected $mustValidate = false;
-    protected $file = false;
-    protected $locale = null;
-    protected $readOnly = false;
-    protected $bind = true;
-
-    // view
+    protected $defaultValue;
     protected $label = '';
     protected $description = '';
-    protected $error = '';
-    protected $rowBegin = true; // TODO: Form::startRow() ?
-    protected $rowEnd = true; // TODO: Form::endRow() ?
+    protected $trimValue = true;
+    protected $required = true;
+    protected $bind = true;
+    protected $file = false;
     protected $hidden = false;
-    protected $scripts = [];
-    protected $styles = [];
+    protected $readOnly = false;
+    protected $error = '';
     protected $classes = ['form-control'];
     protected $attributes = [];
-    
+    protected $scripts = [];
+    protected $styles = [];
+
     abstract public function fetch();
 
-    public function __construct($name, $defaultValue = '') {
+    public function __construct($name, $defaultValue='') {
         $framework = Framework::instance();
         $this->config = $framework->get('config');
         $this->view = $framework->get('view');
@@ -52,6 +45,10 @@ abstract class Input {
         $this->name = $name;
         $this->defaultValue = $defaultValue;
         $this->value = $defaultValue;
+    }
+
+    public function isHidden() {
+        return $this->hidden;
     }
     
     public function isReadOnly() {
@@ -67,22 +64,6 @@ abstract class Input {
         $this->readOnly = $value;
     }
     
-    public function isMustValidate() {
-        return $this->mustValidate;
-    }
-    
-    public function setMustValidate($value) {
-        $this->mustValidate = $value;
-    }
-    
-    public function setLocale($value) {
-        $this->locale = $value;
-    }
-    
-    public function getLocale() {
-        return $this->locale;
-    }
-            
     public function setAttribute($name, $value) {
         $this->attributes[$name] = $value;
     }
@@ -109,22 +90,6 @@ abstract class Input {
 
     public function needsBind() {
         return $this->bind;
-    }
-    
-    public function setRowBegin($value) {
-        $this->rowBegin = $value;
-    }
-    
-    public function hasRowBegin() { // TODO: isRowBegin()?
-        return $this->rowBegin;
-    }
-    
-    public function setRowEnd($value) {
-        $this->rowEnd = $value;
-    }
-    
-    public function hasRowEnd() { // TODO: isRowEnd()?
-        return $this->rowEnd;
     }
     
     public function addClass($class) {
@@ -224,14 +189,6 @@ abstract class Input {
 
     public function getDefaultValue() {
         return $this->defaultValue;
-    }
-
-    public function isHidden() {
-        return $this->hidden;
-    }
-
-    public function setHidden($value) {
-        $this->hidden = $value;
     }
 
 }

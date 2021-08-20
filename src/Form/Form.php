@@ -65,30 +65,15 @@ class Form {
         return $data;
     }
 
-    public function addInput($label, array $newInputData, string $description='') {
-        
-        $framework = Framework::instance();
-
-        // Swap the input name and class,
-        // this is only for a more readable addInput parameter order.
-
-        // .. and get the real class from InputTypes.
-
-        $inputData = $newInputData;
-        $tmp = $inputData[0];
-        $inputData[0] = $this->inputTypes->get($inputData[1]);
-        $inputData[1] = $tmp;
-
-        // .. so we have a declaration for create
-        $input = $framework->create($inputData);
-        $name = $input->getName();
+    public function addInput(string $name, $label, array $newInputData) {        
+        $type = $this->inputTypes->get(array_shift($newInputData));
+        $input = Framework::instance()->create(array_merge([$type, $name], $newInputData));
         if (!in_array($name, $this->order)) {
             $this->order[] = $name;
         }        
         $this->inputs[$name] = $input;
         $input->setForm($this);
         $input->setLabel($this->getText($label));
-        $input->setDescription($this->getText($description));
         return $input;
     }
 
@@ -105,11 +90,10 @@ class Form {
         return $this->inputs[$name];
     }
 
-    public function getValues($localized=false) {
+    public function getValues() {
         $result = [];
         foreach ($this->inputs as $input) {
-            $inputLocalized = (boolean)$input->getLocale();
-            if ($input->needsBind() && !$input->isReadOnly() && $inputLocalized == $localized) {
+            if ($input->needsBind()) {
                 $result[$input->getName()] = $input->getValue();                    
             }
         }
@@ -138,12 +122,12 @@ class Form {
     
     public function checkInputExistance($inputName) {
         if (!$this->hasInput($inputName)) {
-            throw new RuntimeException("Input doesn't exist: $inputName");
+            throw new FrameworkException("Input doesn't exist: $inputName");
         }
     }
 
     public function hasErrors() {
-        return count($this->errors) > 0;
+        return !empty($this->errors);
     }
 
     public function getErrors() {
@@ -156,12 +140,10 @@ class Form {
 
     public function addValidator($inputName, $newValidator) {
         $this->checkInputExistance($inputName);
-
         $framework = Framework::instance();
         $validator = $framework->create(
             $this->validatorTypes->get($newValidator)
         );
-
         if (!isset($this->validators[$inputName])) {
             $this->validators[$inputName] = [];
         }
@@ -209,7 +191,7 @@ class Form {
         }
     }
 
-    public function processInput() {
+    public function process() {
         if ($this->request->getMethod() != 'POST') {
             return false;
         }
@@ -228,16 +210,14 @@ class Form {
     protected function validateInputs() {
         $result = true;        
         foreach ($this->inputs as $inputName => $input) {            
-            if (!$input->isRequired() && $input->isEmpty() && !$input->isMustValidate()) {
+            if (!$input->isRequired() && $input->isEmpty()) {
                 continue;
             }            
             if ($input->isRequired() && $input->isEmpty()) {
-                $error = $this->translation->get('core', 'cant_be_empty');
-                $input->setError($error);
+                $input->setError($this->translation->get('core', 'cant_be_empty'));
                 $result = false;
             } else if (isset($this->validators[$inputName])) {
-                $validatorList = $this->validators[$inputName];
-                $result &= $this->validateInput($input, $validatorList);
+                $result &= $this->validateInput($input, $this->validators[$inputName]);
             } 
         }
         return $result;
@@ -295,11 +275,11 @@ class Form {
             return;
         }
         $csrf = $this->userSession->get('csrf');
-        $this->addInput('', ['_csrf', 'Hidden', $csrf]);
+        $this->addInput('_csrf', null, ['Hidden', $csrf]);
         //$this->addPostValidator(['Csrf', 'csrf', $this, 'csrf']);
     }
 
-    public function fetch($path = ':form/form', $params=[]) {
+    public function fetch($path = ':core/form', $params=[]) {
         $this->setCsrfSession();
         $this->addCsrfInput();
         $this->fetchHead();

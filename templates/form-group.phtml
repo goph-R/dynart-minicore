@@ -1,6 +1,0 @@
-<?php if (!$input->isHidden() && $input->hasRowBegin()): ?>
-<div class="field is-horizontal<?= $input->getLocale() ? ' row-localized' : '' ?>"<?= $input->getLocale() ? ' data-locale="'.$input->getLocale().'"' : '' ?> id="form_group_<?= $input->getId() ?>">
-    <?= $this->fetch(':form/form-label', ['input' => $input]) ?>
-<?php endif ?>
-<?= $this->fetch(':form/form-input', ['input' => $input]) ?>
-<?= !$input->isHidden() && $input->hasRowEnd() ? "</div>" : "" ?>

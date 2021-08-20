@@ -13,43 +13,31 @@ abstract class App {
     const CONFIG_MODULES_FOLDER = 'app.modules_folder';
     const CONFIG_MODULES_URL = 'app.modules_url';
 
-    protected $configPath;
+    protected $configPaths;
 
     /** @var Framework */
     protected $framework;
 
-    /** @var Logger */
-    protected $logger;
+    /** @var Config */
+    protected $config;
 
     /** @var Router */
     protected $router;
     
-    /** @var Config */
-    protected $config;
-
     /** @var Request */
     protected $request;
 
     /** @var Response */
     protected $response;
 
-    /** @var Translation */
-    protected $translation;
-
-    /** @var View */
-    protected $view;
-    
-    /** @var Helper */
-    protected $helper;
-
     /** @var Middleware[] */
     protected $middlewares = [];
 
-    public function __construct($env='dev', $configPath='config.ini.php') {
-        $this->configPath = $configPath;
+    public function __construct(array $configPaths) {
+        $this->configPaths = $configPaths;
         $this->framework = Framework::instance();
         $this->framework->add([
-            'config'         => ['Config', $env],
+            'config'         => 'Config',
             'logger'         => 'Logger',
             'database'       => ['Database', 'default'],
             'request'        => 'Request',
@@ -72,25 +60,29 @@ abstract class App {
     public function init() {
 
         $this->config = $this->framework->get('config');
-        $this->config->load($this->configPath); // TODO: config cache?
+        foreach ($this->configPaths as $path) {
+            $this->config->load($path); // TODO: config cache?
+        }
 
         $coreFolder = $this->getCoreFolder();
 
-        $this->logger = $this->framework->get('logger');        
         $this->request = $this->framework->get('request');
         $this->response = $this->framework->get('response');
-       
-        $this->translation = $this->framework->get('translation');
-        $this->translation->add('core', $coreFolder.'translations/');
+        
+        /** @var Translation $translation */
+        $translation = $this->framework->get('translation');
+        $translation->add('core', $coreFolder.'translations/');
 
         $this->router = $this->framework->get('router');
 
-        $this->helper = $this->framework->get('helper');
-        $this->helper->add(__FILE__, 'Helpers/view.php');
+        /** @var Helper $helper */
+        $helper = $this->framework->get('helper');
+        $helper->add(__FILE__, 'Helpers/view.php');
         
-        $this->view = $this->framework->get('view');
-        $this->view->addFolder(':app', $coreFolder.'templates/');
-        $this->view->addFolder(':form', $coreFolder.'templates/');
+        /** @var View $view */
+        $view = $this->framework->get('view');
+        $view->addFolder(':core', $coreFolder.'templates/');
+        $view->addFolder(':app', $coreFolder.'templates/');
         //$this->view->addFolder(':pager', $coreFolder.'templates');
 
         $this->addMiddleware('localeResolver');
@@ -180,7 +172,6 @@ abstract class App {
         else if (substr($path, 0, 1) == '~') {
             $path = $this->router->getBaseUrl().substr($path, 2);
         }
-
         return $prefix.$path;
     }
 

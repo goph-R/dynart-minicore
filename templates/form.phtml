@@ -1,4 +1,29 @@
-<?= $this->fetch(':form/form-errors', ['form' => $form]) ?>
+<?php foreach ($form->getErrors() as $error): ?>
+    <div class="notification is-danger">
+        <?= $error ?>
+    </div>
+<?php endforeach ?>
 <?php foreach ($form->getInputs() as $input): ?>
-    <?= $this->fetch(':form/form-group', ['input' => $input]) ?>
+    <?php if ($input->isHidden()): ?>
+        <?= $input->fetch() ?>
+    <?php else: ?>
+        <div class="field is-horizontal" id="form_group_<?= $input->getId() ?>">
+            <?php if ($input->getLabel() !== null): ?>
+                <div class="field-label">
+                    <label class="label" for="<?= $input->getId() ?>">
+                        <?= $input->getLabel().($input->isRequired() ? '*' : '') ?>
+                    </label>
+                </div>
+            <?php endif ?>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <?= $input->fetch() ?>
+                    </div>
+                    <p class="help is-danger"><?= $input->getError() ?></p>
+                    <p class="help"><?= $input->getDescription() ?></p>
+                </div>
+            </div>
+        </div>
+    <?php endif ?>
 <?php endforeach ?>

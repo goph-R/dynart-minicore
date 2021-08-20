@@ -13,15 +13,15 @@ class Framework
      */
     public static function setInstance(Framework $instance) {
         if (self::$instance) {
-            throw new FrameworkException("Framework was initialized before.");
+            throw new FrameworkException("The Framework was initialized before.");
         }
         self::$instance = $instance;
     }
 
-    public static function run($appClass, $env, $configPath='config.ini.php') {
+    public static function run($appClass, array $configPaths) {
         $framework = new Framework();        
         self::setInstance($framework);        
-        $framework->add(['app' => [$appClass, $env, $configPath]]);
+        $framework->add(['app' => [$appClass, $configPaths]]);
         $app = $framework->get('app');
         $app->init();
         $app->run();

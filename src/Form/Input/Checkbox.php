@@ -12,17 +12,14 @@ class Checkbox extends Input {
 
     protected $classes = ['checkbox'];
 
-    public function __construct($name, $defaultValue='', $label='', $checked=false) {
+    public function __construct($name, $defaultValue='1', $text='', $checked=false) {
         parent::__construct($name, $defaultValue);
-        $framework = Framework::instance();
         $this->checked = $checked;
-        if (is_array($label) && count($label) == 2) {
-            $t = $framework->get('translation');
-            $this->text = $t->get($label[0], $label[1]);
+        if (is_array($text) && count($text) == 2) {
+            $this->text = text($text[0], $text[1]);
         } else {
-            $this->text = $label;
+            $this->text = $text;
         }
-        $this->required = false;
     }
 
     public function setValue($value) {
@@ -46,7 +43,7 @@ class Checkbox extends Input {
         }
         $result .= '>';
         if ($this->text) {
-            $result .= $this->view->escape($this->text).'</label>';
+            $result .= ' '.$this->view->escape($this->text).'</label>';
         }
         return $result;
     }

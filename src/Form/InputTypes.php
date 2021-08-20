@@ -17,7 +17,7 @@ class InputTypes extends Types {
             'Text',
             'Textarea'
         ],
-            '\Dynart\Minicore\Form\Input'    
+            '\Dynart\Minicore\Form\Input'
         );
     }
 
