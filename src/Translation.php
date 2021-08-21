@@ -25,7 +25,7 @@ class Translation {
         $this->hasMultiLocales = count($this->allLocales) > 1;
     }
 
-    public function add($namespace, $folder) {
+    public function add(string $namespace, string $folder) {
         $this->data[$namespace] = false;
         $this->folders[$namespace] = $folder;
     }
@@ -42,11 +42,11 @@ class Translation {
         return $this->locale;
     }
   
-    public function setLocale($locale) {
+    public function setLocale(string $locale) {
         $this->locale = $locale;
     }
 
-    public function get($namespace, $name, $params=[]) {
+    public function get(string $namespace, string $name, array $params=[]) {
         $result = '#'.$namespace.'.'.$name.'#';
         if (!isset($this->folders[$namespace]) || !isset($this->data[$namespace])) {
             return $result;

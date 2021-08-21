@@ -4,14 +4,8 @@ namespace Dynart\Minicore;
 
 abstract class Controller {
 
-    /** @var Framework */
-    protected $framework;
-
     /** @var App */
     protected $app;
-
-    /** @var Config */
-    protected $config;
 
     /** @var Request */
     protected $request;
@@ -19,28 +13,15 @@ abstract class Controller {
     /** @var Response */
     protected $response;
 
-    /** @var Router */
-    protected $router;
-
     /** @var View */
     protected $view;
 
-    /** @var Translation */
-    protected $translation;
-
-    /** @var UserSession */
-    protected $userSession;
-
     public function __construct() {
-        $this->framework = Framework::instance();
-        $this->app = $this->framework->get('app');
-        $this->config = $this->framework->get('config');
-        $this->request = $this->framework->get('request');
-        $this->response = $this->framework->get('response');
-        $this->router = $this->framework->get('router');
-        $this->view = $this->framework->get('view');
-        $this->translation = $this->framework->get('translation');
-        $this->userSession = $this->framework->get('userSession');
+        $framework = Framework::instance();
+        $this->app = $framework->get('app');
+        $this->request = $framework->get('request');
+        $this->response = $framework->get('response');
+        $this->view = $framework->get('view');
     }
 
     public function render($path, $vars=[]) {

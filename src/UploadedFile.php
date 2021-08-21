@@ -10,7 +10,7 @@ class UploadedFile {
     private $size;
     private $type;
     
-    public function __construct(array $data, $index=-1) {
+    public function __construct(array $data, int $index=-1) {
         if ($index == -1) {
             $this->name = $data['name'];
             $this->tempPath = $data['tmp_name'];
@@ -50,7 +50,7 @@ class UploadedFile {
         return is_uploaded_file($this->tempPath);
     }
     
-    public function moveTo($path) {
+    public function moveTo(string $path) {
         move_uploaded_file($this->tempPath, $path);
         $this->tempPath = null;
     }

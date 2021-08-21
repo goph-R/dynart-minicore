@@ -10,9 +10,11 @@ abstract class Table {
     protected $framework;
     protected $db;
     protected $name = '';
-    protected $primaryKey = 'id'; // use array for multi primary keys
     protected $fields = []; // [name => default value]
-    
+
+    /** @var string|array */
+    protected $primaryKey = 'id'; // use array for multi primary keys
+
     // only on single primary keys!
     protected $autoId = true;
     protected $translationTable = null;
@@ -30,6 +32,9 @@ abstract class Table {
         return $this->translationTable ? true : false;
     }
 
+    /**
+     * @return Table
+     */
     public function getTranslationTable() {
         return $this->framework->get($this->translationTable);
     }

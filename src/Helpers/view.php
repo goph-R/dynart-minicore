@@ -2,7 +2,7 @@
 
 use Dynart\Minicore\Framework;
 
-function static_url($path) {
+function static_url($path, $useTimestamp=true) {
     $app = Framework::instance()->get('app');
     return $app->getStaticUrl($path);
 }
@@ -12,12 +12,12 @@ function route_url($path=null, $params=[], $amp='&amp;') {
     return $router->getUrl($path, $params, $amp);
 }
 
-function css($src, $media='all') {
-    return '<link rel="stylesheet" type="text/css" href="'.static_url($src).'" media="'.$media.'">'."\n";
+function css($src, $media='all', $useTimestamp=true) {
+    return '<link rel="stylesheet" type="text/css" href="'.static_url($src, $useTimestamp).'" media="'.$media.'">'."\n";
 }
 
-function script($src) {
-    return '<script src="'.static_url($src).'" type="text/javascript"></script>'."\n";
+function script($src, $useTimestamp=true) {
+    return '<script src="'.static_url($src, $useTimestamp).'" type="text/javascript"></script>'."\n";
 }
 
 function use_css($src, $media='all') {
@@ -47,18 +47,14 @@ function use_module_script($moduleId, $src) {
 }
 */
 
-function fetch_scripts() {
+function fetch_scripts($useTimestamp=true) {
     $view = Framework::instance()->get('view');
-    return $view->fetchScripts();
+    return $view->fetchScripts($useTimestamp);
 }
 
-function fetch_styles() {
+function fetch_styles($useTimestamp=true) {
     $view = Framework::instance()->get('view');
-    $result = '';
-    foreach ($view->getStyles() as $style) {
-        $result .= css($style['path'], $style['media']);
-    }
-    return $result;
+    return $view->fetchStyles($useTimestamp);
 }
 
 function fetch_content($contentPath, $vars=[]) {

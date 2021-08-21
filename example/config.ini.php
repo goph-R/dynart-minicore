@@ -85,7 +85,8 @@ app.core_folder = "~/vendor/dynart/minicore"
 ; Path to a folder that contains the error html files (401.html, 500.html, ..)
 app.error_static_folder = "~/vendor/dynart/minicore/static"
 
-; URL for the static files (css, js, etc.)
+; Path and URL for the static files (css, js, etc.)
+app.static_folder = "~/static"
 app.static_url = "~/static"
 
 ; Path and URL for the media files (usually uploaded by users)

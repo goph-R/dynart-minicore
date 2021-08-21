@@ -40,7 +40,7 @@ class Request {
         }
     }
     
-    protected function createUploadedFilesFromArray(Framework $framework, string $name, array $file) {
+    protected function createUploadedFilesFromArray(Framework $framework, $name, array $file) {
         $this->uploadedFiles[$name] = [];
         foreach (array_keys($file['name']) as $index) {
             $uploadedFile = $framework->create(['UploadedFile', $file, $index]);
@@ -77,15 +77,15 @@ class Request {
         return $this->data;
     }
 
-    public function get($name, $defaultValue=null) {
-        return $this->has($name) ? $this->data[$name] : $defaultValue;
+    public function get(string $name, $default=null) {
+        return $this->has($name) ? $this->data[$name] : $default;
     }
 
-    public function has($name) {
+    public function has(string $name) {
         return array_key_exists($name, $this->data);
     }
 
-    public function set($name, $value) {
+    public function set(string $name, $value) {
         $this->data[$name] = $value;
     }
 
@@ -93,16 +93,16 @@ class Request {
         return $this->method;
     }
 
-    public function getHeader($name, $defaultValue=null) {
-        return isset($this->headers[$name]) ? $this->headers[$name] : $defaultValue;
+    public function getHeader(string $name, $default=null) {
+        return isset($this->headers[$name]) ? $this->headers[$name] : $default;
     }
 
-    public function getServer($name, $defaultValue=null) {
-        return isset($this->server[$name]) ? $this->server[$name] : $defaultValue;
+    public function getServer(string $name, $default=null) {
+        return isset($this->server[$name]) ? $this->server[$name] : $default;
     }
 
-    public function getCookie($name, $defaultValue=null) {
-        return isset($this->cookies[$name]) ? $this->cookies[$name] : $defaultValue;
+    public function getCookie(string $name, $default=null) {
+        return isset($this->cookies[$name]) ? $this->cookies[$name] : $default;
     }
 
     public function getIp() {
@@ -121,7 +121,7 @@ class Request {
         return substr($this->server['REQUEST_URI'], strlen($uriPrefix));
     }
 
-    public function getUploadedFile($name) {
+    public function getUploadedFile(string $name) {
         return isset($this->uploadedFiles[$name]) ? $this->uploadedFiles[$name] : null;
     }
     

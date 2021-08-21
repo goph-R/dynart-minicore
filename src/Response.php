@@ -7,21 +7,21 @@ class Response {
     private $headers = [];
     private $content;
 
-    public function setCookie($name, $value, $time=null) {
+    public function setCookie(string $name, $value, $time=null) {
         setcookie($name, $value, $time ? $time : time() + 31536000);
     }
 
-    public function setHeaders($values) {
+    public function setHeaders(array $values) {
         foreach ($values as $name => $value) {
             $this->setHeader($name, $value);
         }
     }
 
-    public function setHeader($name, $value) {
+    public function setHeader(string $name, string $value) {
         $this->headers[$name] = $value;
     }
 
-    public function setContent($content) {
+    public function setContent(string $content) {
         $this->content = $content;
     }
 

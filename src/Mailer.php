@@ -102,7 +102,7 @@ class Mailer {
         $mail = new PHPMailer(true);
         $mail->SMTPAuth = $this->usingSmtpAuth();
         $mail->SMTPDebug = $this->getDebugLevel();
-        $mail->Debugoutput = $this->debugOutput;
+        $mail->Debugoutput = [$this, 'debugOutput'];
         if (!$this->config->get(self::CONFIG_VERIFY_SSL)) {
             $this->disableVerify($mail);
         }

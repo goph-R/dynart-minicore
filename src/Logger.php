@@ -36,25 +36,25 @@ class Logger {
         return $this->level;
     }
 
-    public function info($message) {
+    public function info(string $message) {
         if ($this->level <= Logger::INFO) {
             $this->log('INFO', $message);
         }
     }
 
-    public function warning($message) {
+    public function warning(string $message) {
         if ($this->level <= Logger::WARNING) {
             $this->log('WARNING', $message);
         }
     }
 
-    public function error($message) {
+    public function error(string $message) {
         if ($this->level <= Logger::ERROR) {
             $this->log('ERROR', $message);
         }
     }
 
-    protected function log($label, $message) {
+    protected function log(string $label, string $message) {
         $text = date($this->dateFormat).' ['.$label.'] '.$message."\n\n";
         $dir = dirname($this->path);
         if (!file_exists($dir)) {

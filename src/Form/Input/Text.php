@@ -15,7 +15,7 @@ class Text extends Input {
         $this->setAttribute('placeholder', $placeholder);
     }
     
-    public function setAutocomplete($autocomplete) {
+    public function setAutoComplete($autocomplete) {
         $this->setAttribute('autocomplete', $autocomplete ? 'on' : 'off');
     }
 

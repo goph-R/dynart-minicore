@@ -3,6 +3,7 @@
 namespace Dynart\Minicore\Form\Input;
 
 use Dynart\Minicore\Form\Input;
+use Dynart\Minicore\UploadedFile;
 
 class File extends Input {
 

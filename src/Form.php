@@ -1,9 +1,12 @@
 <?php
 
-namespace Dynart\Minicore\Form;
+namespace Dynart\Minicore;
 
-use Dynart\Minicore\Framework;
-use Dynart\Minicore\FrameworkException;
+use Dynart\Minicore\Form\Input;
+use Dynart\Minicore\Form\InputTypes;
+use Dynart\Minicore\Form\Validator;
+use Dynart\Minicore\Form\ValidatorTypes;
+
 
 class Form {
 
@@ -25,8 +28,8 @@ class Form {
     /** @var Validator[] */
     protected $postValidators = [];
     
-    /** @var UserSession */
-    protected $userSession;
+    /** @var Session */
+    protected $session;
 
     /** @var InputTypes */
     protected $inputTypes;
@@ -44,7 +47,7 @@ class Form {
         $this->request = $framework->get('request');
         $this->view = $framework->get('view');
         $this->translation = $framework->get('translation');
-        $this->userSession = $framework->get('userSession');
+        $this->session = $framework->get('session');
         $this->inputTypes = $framework->get('inputTypes');
         $this->validatorTypes = $framework->get('validatorTypes');
         $this->name = $name;
@@ -266,20 +269,24 @@ class Form {
         if (!$this->useCsrf) {
             return;
         }
-        $csrf = bin2hex(random_bytes(16));
-        $this->userSession->set('csrf', $csrf);
+        try {
+            $csrf = bin2hex(random_bytes(16));
+        } catch (\Exception $e) {
+            throw new FrameworkException("Couldn't create random bytes.");
+        }
+        $this->session->set('csrf', $csrf);
     }
     
     protected function addCsrfInput() {
         if (!$this->useCsrf) {
             return;
         }
-        $csrf = $this->userSession->get('csrf');
+        $csrf = $this->session->get('csrf');
         $this->addInput('_csrf', null, ['Hidden', $csrf]);
         //$this->addPostValidator(['Csrf', 'csrf', $this, 'csrf']);
     }
 
-    public function fetch($path = ':core/form', $params=[]) {
+    public function fetch(string $path = ':core/form', $params=[]) {
         $this->setCsrfSession();
         $this->addCsrfInput();
         $this->fetchHead();

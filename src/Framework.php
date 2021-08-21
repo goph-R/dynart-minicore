@@ -8,7 +8,8 @@ class Framework
     protected $declarations = [];
     protected $singletons = [];
 
-    /** 
+    /**
+     * @param Framework $instance
      * @throws FrameworkException
      */
     public static function setInstance(Framework $instance) {
@@ -38,6 +39,10 @@ class Framework
         return self::$instance;
     }
 
+    public function isCreated(string $name) {
+        return isset($this->singletons[$name]);
+    }
+
     public function add(array $newDeclarations, string $namespace='') {
         $declarations = $newDeclarations;        
         if ($namespace) {
@@ -57,6 +62,7 @@ class Framework
     }
 
     /**
+     * @param string $name
      * @return string|array
      * @throws FrameworkException
      */
@@ -68,11 +74,12 @@ class Framework
     }
 
     /**
+     * @param string $name
      * @return mixed
      * @throws FrameworkException
      */
     public function get(string $name) {
-        if (isset($this->singletons[$name])) {
+        if ($this->isCreated($name)) {
             return $this->singletons[$name];
         }
         $declaration = $this->getDeclaration($name);
@@ -82,6 +89,7 @@ class Framework
     }
 
     /**
+     * @param string|array $declaration
      * @return array
      * @throws FrameworkException
      */
@@ -100,6 +108,7 @@ class Framework
     }
 
     /**
+     * @param string|array $declaration
      * @return mixed
      * @throws FrameworkException
      */
@@ -107,17 +116,18 @@ class Framework
         list($class, $args) = $this->extractDeclaration($declaration);
         try {
             $reflect = new \ReflectionClass($class);
-            return $reflect->newInstanceArgs($args);
+        } catch (\ReflectionException $e) {
+            $message = "Couldn't create instance for declaration: ".json_encode($declaration);
+            throw new FrameworkException($message);
         }
-        catch (\ReflectionException $e)
-        {
-            throw $e;
-            //throw new FrameworkException("Couldn't create instance of ".$class.", arguments were: ".json_encode($args));
-        }        
+        return $reflect->newInstanceArgs($args);
     }
 
     public function finish($content='') {
-        die($content);
+        if ($this->isCreated('session')) {
+            $this->get('session')->finish();
+        }
+        exit($content);
     }    
 
 }

@@ -8,6 +8,7 @@ abstract class App {
     const CONFIG_CORE_FOLDER = 'app.core_folder';
     const CONFIG_CACHE_FOLDER = 'app.cache_folder';
     const CONFIG_STATIC_URL = 'app.static_url';
+    const CONFIG_STATIC_FOLDER = 'app.static_folder';
     const CONFIG_MEDIA_URL = 'app.media_url';
     const CONFIG_MEDIA_FOLDER = 'app.media_folder';
     const CONFIG_MODULES_FOLDER = 'app.modules_folder';
@@ -39,7 +40,6 @@ abstract class App {
     /** @var Helper */
     protected $helper;
 
-    /** @var Middleware[] */
     protected $middlewares = [];
 
     public function __construct(array $configPaths) {
@@ -58,7 +58,7 @@ abstract class App {
             'mailer'         => 'Mailer',
             'view'           => 'View',
             'helper'         => 'Helper',            
-            'userSession'    => 'UserSession', // TODO: JWT
+            'session'        => 'Session',
             'inputTypes'     => 'Form\InputTypes',
             'validatorTypes' => 'Form\ValidatorTypes',
         ],
@@ -106,93 +106,60 @@ abstract class App {
         $this->response->send();
     }
 
-
     public function initCurrentRoute() {
         $route = $this->router->matchRoute($this->router->getPath());
         if (!$route || !in_array($this->request->getMethod(), $route->getHttpMethods())) {
             $this->error(404);
         }
         $this->router->setCurrentRoute($route);
-        return $route;      
-    }
-
-    protected function setUrlParametersInRequest(Route $route) {
-        foreach ($route->getUrlParameters() as $name => $value) {
-            $this->request->set($name, $value);
-        }        
-    }
-
-    protected function runMiddlewares() {
-        foreach ($this->middlewares as $middlewareDeclaration) {
-            $middleware = $this->framework->get($middlewareDeclaration);
-            $middleware->run();
-        }        
-    }
-
-    protected function runRoute(Route $route) {
-        $object = $this->framework->get($route->getControllerName());
-        $method = $route->getControllerMethod();
-        if (!method_exists($object, $method)) {
-            throw new FrameworkException('The method '.get_class($object).'::'.$method." doesn't exist.");
-        }
-        $params = $route->getMethodParameters();
-        call_user_func_array([$object, $method], $params);        
-    }
-
-    public function getCoreFolder() {
-        $path = $this->config->get(self::CONFIG_CORE_FOLDER);
-        if (substr($path, 0, 1) == '~') {
-            $path = $this->getPath().'/'.substr($path, 2);
-        }
-        return $path;
-    }
-
-    public function getCacheFolder() {
-        return $this->config->get(self::CONFIG_CACHE_FOLDER);
+        return $route;
     }
 
     public function getPath() {
         return $this->config->get(self::CONFIG_PATH);
     }
 
+    public function getCoreFolder() {
+        $path = $this->config->get(self::CONFIG_CORE_FOLDER);
+        return $this->getFullPath($path);
+    }
+
+    public function getCacheFolder() {
+        $path = $this->config->get(self::CONFIG_CACHE_FOLDER);
+        return $this->getFullPath($path);
+    }
+
     public function getMediaPath(string $path='') {
-        return $this->config->get(self::CONFIG_MEDIA_FOLDER).$path;
+        $path = $this->config->get(self::CONFIG_MEDIA_FOLDER).$path;
+        return $this->getFullPath($path);
     }
 
     public function getMediaUrl(string $path='') {
-        return $this->getFullUrl(self::CONFIG_MEDIA_URL, $path);
+        $url = $this->config->get(self::CONFIG_MEDIA_URL);
+        return $this->getFullUrl($url).$path;
     }  
     
-    public function getStaticUrl(string $path) {
-        return $this->getFullUrl(self::CONFIG_STATIC_URL, $path);
-    }
-
-    protected function isStartWithHttp(string $path) {
-        return substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://';
-    }
-
-    protected function getFullUrl(string $configName, string $path) {
+    public function getStaticUrl(string $path, bool $useTimestamp=true) {
         if ($this->isStartWithHttp($path)) {
             return $path;
         }
-        $prefix = $this->config->get($configName);
-        if (substr($prefix, 0, 1) == '~') {
-            $prefix = $this->router->getBaseUrl().'/'.substr($prefix, 2);
+        if ($useTimestamp) {
+            $folder = $this->config->get(self::CONFIG_STATIC_FOLDER);
+            $filePath = $this->getFullPath($folder.$path);
+            $path .= '?'.filemtime($filePath);
         }
-        else if (substr($path, 0, 1) == '~') {
-            $path = $this->router->getBaseUrl().'/'.substr($path, 2);
-        }
-        return $prefix.$path;
+        $url = $this->config->get(self::CONFIG_STATIC_URL);
+        return $this->getFullUrl($url).$path;
     }
 
-    public function redirect($path, $params=[]) {
+    public function redirect(string $path, array $params=[]) {
         if ($this->isStartWithHttp($path)) {
             $url = $path;
         } else {
             $url = $this->router->getUrl($path, $params, '&');
         }
         header('Location: '.$url);
-        $this->finish();
+        $this->framework->finish();
     }    
 
     public function error($code, $content='') {
@@ -205,11 +172,51 @@ abstract class App {
             }
         }
         http_response_code($code);
-        $this->finish($content);
+        $this->framework->finish($content);
     }
 
-    public function finish($content='') {
-        exit($content);
+    protected function setUrlParametersInRequest(Route $route) {
+        foreach ($route->getUrlParameters() as $name => $value) {
+            $this->request->set($name, $value);
+        }
     }
-    
+
+    protected function runMiddlewares() {
+        foreach ($this->middlewares as $middlewareDeclaration) {
+            $middleware = $this->framework->get($middlewareDeclaration);
+            $middleware->run();
+        }
+    }
+
+    protected function runRoute(Route $route) {
+        $object = $this->framework->get($route->getControllerName());
+        $method = $route->getControllerMethod();
+        if (!method_exists($object, $method)) {
+            throw new FrameworkException('The method '.get_class($object).'::'.$method." doesn't exist.");
+        }
+        $params = $route->getMethodParameters();
+        call_user_func_array([$object, $method], $params);
+    }
+
+    protected function isStartWithHttp(string $path) {
+        return substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://';
+    }
+
+    protected function getFullPath(string $path) {
+        if (substr($path, 0, 1) == '~') {
+            $path = $this->getPath().substr($path, 1);
+        }
+        return $path;
+    }
+
+    protected function getFullUrl(string $path) {
+        if ($this->isStartWithHttp($path)) {
+            return $path;
+        }
+        if (substr($path, 0, 1) == '~') {
+            $path = $this->router->getBaseUrl().substr($path, 1);
+        }
+        return $path;
+    }
+
 }

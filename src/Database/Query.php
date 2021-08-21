@@ -3,6 +3,7 @@
 namespace Dynart\Minicore\Database;
 
 use Dynart\Minicore\Framework;
+use Dynart\Minicore\FrameworkException;
 
 abstract class Query {
     
@@ -56,7 +57,7 @@ abstract class Query {
         
         // use all the fields in default
         if ($fields === null) {
-            $fields = $this->getAllFields($this->options);
+            $fields = $this->getAllFields();
         }
         $this->orderByFields = array_keys($fields);
         $asFields = [];
@@ -74,7 +75,7 @@ abstract class Query {
         $table = $this->getTable();
         $tableName = $this->db->escapeName($table->getName());
         $sql = "SELECT $fieldNames FROM $tableName";
-        $sql .= $this->createJoins($this->options);
+        $sql .= $this->createJoins();
 
         return $sql;
     }
@@ -151,6 +152,7 @@ abstract class Query {
             $result[$field] = $table->getName().'.'.$field;
         }
         if ($this->useTranslated()) {
+            /** @var Table $trTable */
             $trTable = $table->getTranslationTable();
             $trFields = array_diff($trTable->getFields(), $trTable->getPrimaryKey());
             foreach ($trFields as $trField) {
@@ -166,6 +168,7 @@ abstract class Query {
             throw new FrameworkException("Primary key must be single!");
         }
         $primaryKey = $this->db->escapeName($table->getName().'.'.$table->getPrimaryKey());
+        /** @var Table $trTable */
         $trTable = $table->getTranslationTable();
         $trTableName = $this->db->escapeName($trTable->getName());
         $trPrimaryKeys = $trTable->getPrimaryKey();
@@ -203,7 +206,6 @@ abstract class Query {
             return '';
         }
         $field = $this->options['order_by'];
-        $table = $this->getTable();
         if (!in_array($field, $this->orderByFields)) {
             return '';
         }

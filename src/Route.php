@@ -35,30 +35,51 @@ class Route {
         }
     }
 
+    /**
+     * @return string
+     */
     public function getPath() {
         return $this->path;
     }
 
+    /**
+     * @return array
+     */
     public function getUrlParameters() {
         return $this->urlParameters;
     }
 
+    /**
+     * @return array
+     */
     public function getMethodParameters() {
         return $this->methodParameters;
     }
-    
+
+    /**
+     * @return string
+     */
     public function getControllerName() {
         return $this->controllerName;
     }
 
+    /**
+     * @return string
+     */
     public function getControllerMethod() {
         return $this->controllerMethod;
     }
 
+    /**
+     * @return array
+     */
     public function getHttpMethods() {
         return $this->httpMethods;
     }
 
+    /**
+     * @return bool
+     */
     public function match($path) {
         $currentParts = explode('/', $path);
         if ($this->partCount != count($currentParts)) {

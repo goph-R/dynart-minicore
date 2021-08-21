@@ -25,7 +25,7 @@ class Router {
     /** @var RouteAliases */
     protected $routeAliases;
 
-    /** @var LocaleResolverMiddleware */
+    /** @var LocaleResolver */
     protected $localeResolver;
 
     protected $routeClass = '\Dynart\Minicore\Route';
@@ -35,15 +35,15 @@ class Router {
     protected $prefixVariables = [];
 
     public function __construct() {
-        $this->framework = Framework::instance();
-        $this->config = $this->framework->get('config');
-        $this->aliases = $this->framework->get('routeAliases');
-        $this->translation = $this->framework->get('translation');
-        $this->routeAliases = $this->framework->get('routeAliases');
-        $this->localeResolver = $this->framework->get('localeResolver');
+        $framework = Framework::instance();
+        $this->config = $framework->get('config');
+        $this->aliases = $framework->get('routeAliases');
+        $this->translation = $framework->get('translation');
+        $this->routeAliases = $framework->get('routeAliases');
+        $this->localeResolver = $framework->get('localeResolver');
 
         // set the path, if it's an alias, get the real path
-        $request = $this->framework->get('request');
+        $request = $framework->get('request');
         $this->path = $request->get($this->getParameter(), '/');
         if ($this->routeAliases->hasAlias($this->path)) {
             $this->path = $this->routeAliases->getPath($this->path);
@@ -111,7 +111,7 @@ class Router {
         return $this->config->get(self::CONFIG_PATH_PREFIX);
     }
         
-    public function getUrl($path=null, $params=[], $amp='&amp;') {
+    public function getUrl($path=null, array $params=[], string $amp='&amp;') {
         $paramsSeparator = '';
         $paramsString = '';        
         if ($params) {
@@ -131,7 +131,7 @@ class Router {
 
     protected function addRoute(string $path, string $controllerName, string $controllerMethod, array $httpMethods) {
         $path = $this->getPathPrefix().$path;
-        $result = $this->framework->create([
+        $result = Framework::instance()->create([
             $this->routeClass,
             $path, $controllerName, $controllerMethod, $httpMethods
         ]);

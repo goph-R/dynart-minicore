@@ -3,8 +3,8 @@
 namespace Dynart\Minicore\Database;
 
 use Dynart\Minicore\Framework;
-use Dynart\Minicore\FrameworkException;
 use Dynart\Minicore\Logger;
+use Dynart\Minicore\Config;
 
 abstract class Database {
 
@@ -19,7 +19,7 @@ abstract class Database {
     /** @var Config */
     protected $config;
 
-    /** @var PDO */
+    /** @var \PDO */
     protected $pdo = null;
 
     protected $connected = false;

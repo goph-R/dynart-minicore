@@ -14,19 +14,19 @@ class View {
     private $useLayout = true;
     private $pathChanges = [];
 
-    public function setUseLayout($value) {
+    public function setUseLayout(bool $value) {
         $this->useLayout = $value;
     }
     
-    public function changePath($original, $new) {
+    public function changePath(string $original, string $new) {
         $this->pathChanges[$original] = $new;
     }
 
-    public function addFolder($name, $folder) {
+    public function addFolder(string $name, string $folder) {
         $this->folders[$name] = $folder;
     }
 
-    public function getRealPath($path, $extension) {
+    public function getRealPath(string $path, string $extension) {
         if (isset($this->pathChanges[$path])) {
             $path = $this->pathChanges[$path];
         }
@@ -46,25 +46,25 @@ class View {
         return $result;
     }
 
-    public function addScript($path) {
+    public function addScript(string $path) {
         $this->scripts[$path] = $path;
     }
 
-    public function addStyle($path, $media='all') {
+    public function addStyle(string $path, string $media='all') {
         $this->styles[$path.$media] = ['path' => $path, 'media' => $media];
     }
 
-    public function hasBlock($name) {
+    public function hasBlock(string $name) {
         return isset($this->blocks[$name]);
     }
 
-    public function startBlock($name) {
+    public function startBlock(string $name) {
         $this->blocks[$name] = '';
         $this->blockNames[] = $name;
         ob_start();
     }
 
-    public function appendBlock($name) {
+    public function appendBlock(string $name) {
         if (!isset($this->blocks[$name])) {
             $this->blocks[$name] = '';
         }
@@ -74,7 +74,7 @@ class View {
         ob_start();
     }
 
-    public function write($content) {
+    public function write(string $content) {
         echo $content;
     }
 
@@ -84,11 +84,11 @@ class View {
         $this->blocks[$name] .= $content;
     }
 
-    public function fetchBlock($name) {
+    public function fetchBlock(string $name) {
         return $this->hasBlock($name) ? $this->blocks[$name] : '';
     }
 
-    public function useLayout($path) {
+    public function useLayout(string $path) {
         $this->layout[] = $path;
     }
 
@@ -100,38 +100,38 @@ class View {
         return $this->styles;
     }
 
-    public function set($vars) {
+    public function set(array $vars) {
         foreach ($vars as $name => $value) {
             $this->setVariable($name, $value);
         }
     }
 
-    public function setVariable($name, $value) {
+    public function setVariable(string $name, $value) {
         $this->vars[$name] = $value;
     }
 
-    public function escape($value) {
+    public function escape(string $value) {
         return htmlspecialchars($value);
     }
 
-    public function fetch($path, $vars=[]) {
+    public function fetch(string $path, array $vars=[]) {
         $content = $this->tryToInclude($path, $vars);
         return $content;
     }
 
-    public function fetchWithLayout($path, $vars=[]) {
+    public function fetchWithLayout(string $path, array $vars=[]) {
         $content = $this->tryToInclude($path, $vars);
-        if ($this->useLayout && $this->layout) {
+        if ($this->useLayout && $this->layout) { // TODO: recursive layout
             $path = array_pop($this->layout);
-            $content .= $this->fetchWithLayout($path, $vars, $content);
+            $content .= $this->fetchWithLayout($path, $vars);
         }
         return $content;
     }
 
-    public function fetchScripts() {
+    public function fetchScripts(bool $useTimestamp=true) {
         $result = '';
         foreach ($this->getScripts() as $script) {
-            $result .= script($script);
+            $result .= script($script, $useTimestamp);
         }
         if ($this->hasBlock('scripts')) {
             $result .= $this->fetchBlock('scripts');
@@ -139,7 +139,15 @@ class View {
         return $result;        
     }
 
-    private function tryToInclude($__path, $__vars=[]) {
+    public function fetchStyles(bool $useTimestamp=true) {
+        $result = '';
+        foreach ($this->getStyles() as $style) {
+            $result .= css($style['path'], $style['media'], $useTimestamp);
+        }
+        return $result;        
+    }
+
+    private function tryToInclude(string $__path, array $__vars=[]) {
         $__realPath = $this->getRealPath($__path, 'phtml');
         if (!file_exists($__realPath)) {
             throw new FrameworkException("Can't include view: ".$__realPath);

@@ -3,6 +3,10 @@
 namespace Dynart\Minicore\Form;
 
 use Dynart\Minicore\Framework;
+use Dynart\Minicore\View;
+use Dynart\Minicore\Form;
+use Dynart\Minicore\Config;
+use Dynart\Minicore\Request;
 
 abstract class Input {
 
