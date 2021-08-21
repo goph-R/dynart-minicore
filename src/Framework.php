@@ -33,7 +33,7 @@ class Framework
      */
     public static function instance() {
         if (!self::$instance) {
-            throw new FrameworkException("Framework wasn't initialized.");
+            throw new FrameworkException("The Framework wasn't initialized.");
         }
         return self::$instance;
     }

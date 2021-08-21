@@ -1,6 +1,6 @@
 <?php foreach ($form->getErrors() as $error): ?>
     <div class="notification is-danger">
-        <?= $error ?>
+        <?= esc($error) ?>
     </div>
 <?php endforeach ?>
 <?php foreach ($form->getInputs() as $input): ?>
@@ -11,7 +11,7 @@
             <?php if ($input->getLabel() !== null): ?>
                 <div class="field-label">
                     <label class="label" for="<?= $input->getId() ?>">
-                        <?= $input->getLabel().($input->isRequired() ? '*' : '') ?>
+                        <?= esc($input->getLabel().($input->isRequired() && $input->getLabel() ? '*' : '')) ?>
                     </label>
                 </div>
             <?php endif ?>
@@ -20,8 +20,8 @@
                     <div class="control">
                         <?= $input->fetch() ?>
                     </div>
-                    <p class="help is-danger"><?= $input->getError() ?></p>
-                    <p class="help"><?= $input->getDescription() ?></p>
+                    <p class="help is-danger"><?= esc($input->getError()) ?></p>
+                    <p class="help"><?= esc($input->getDescription()) ?></p>
                 </div>
             </div>
         </div>

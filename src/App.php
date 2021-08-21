@@ -30,6 +30,15 @@ abstract class App {
     /** @var Response */
     protected $response;
 
+    /** @var Translation */
+    protected $translation;
+
+    /** @var View */
+    protected $view;
+
+    /** @var Helper */
+    protected $helper;
+
     /** @var Middleware[] */
     protected $middlewares = [];
 
@@ -69,20 +78,17 @@ abstract class App {
         $this->request = $this->framework->get('request');
         $this->response = $this->framework->get('response');
         
-        /** @var Translation $translation */
-        $translation = $this->framework->get('translation');
-        $translation->add('core', $coreFolder.'translations/');
+        $this->translation = $this->framework->get('translation');
+        $this->translation->add('core', $coreFolder.'/translations');
 
         $this->router = $this->framework->get('router');
 
-        /** @var Helper $helper */
-        $helper = $this->framework->get('helper');
-        $helper->add(__FILE__, 'Helpers/view.php');
+        $this->helper = $this->framework->get('helper');
+        $this->helper->add(__FILE__, 'Helpers/view.php');
         
-        /** @var View $view */
-        $view = $this->framework->get('view');
-        $view->addFolder(':core', $coreFolder.'templates/');
-        $view->addFolder(':app', $coreFolder.'templates/');
+        $this->view = $this->framework->get('view');
+        $this->view->addFolder(':core', $coreFolder.'/templates');
+        $this->view->addFolder(':app', $coreFolder.'/templates');
         //$this->view->addFolder(':pager', $coreFolder.'templates');
 
         $this->addMiddleware('localeResolver');
@@ -136,7 +142,7 @@ abstract class App {
     public function getCoreFolder() {
         $path = $this->config->get(self::CONFIG_CORE_FOLDER);
         if (substr($path, 0, 1) == '~') {
-            $path = $this->getPath().substr($path, 2);
+            $path = $this->getPath().'/'.substr($path, 2);
         }
         return $path;
     }
@@ -146,7 +152,7 @@ abstract class App {
     }
 
     public function getPath() {
-        return $this->config->get(SELF::CONFIG_PATH);
+        return $this->config->get(self::CONFIG_PATH);
     }
 
     public function getMediaPath(string $path='') {
@@ -161,22 +167,26 @@ abstract class App {
         return $this->getFullUrl(self::CONFIG_STATIC_URL, $path);
     }
 
+    protected function isStartWithHttp(string $path) {
+        return substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://';
+    }
+
     protected function getFullUrl(string $configName, string $path) {
-        if (strpos($path, 'https://') === 0 || strpos($path, 'http://') === 0) {
+        if ($this->isStartWithHttp($path)) {
             return $path;
         }
         $prefix = $this->config->get($configName);
         if (substr($prefix, 0, 1) == '~') {
-            $prefix = $this->router->getBaseUrl().substr($prefix, 2);
+            $prefix = $this->router->getBaseUrl().'/'.substr($prefix, 2);
         }
         else if (substr($path, 0, 1) == '~') {
-            $path = $this->router->getBaseUrl().substr($path, 2);
+            $path = $this->router->getBaseUrl().'/'.substr($path, 2);
         }
         return $prefix.$path;
     }
 
     public function redirect($path, $params=[]) {
-        if (substr($path, 0, 7) == 'http://' || substr($path, 0, 8) == 'https://') {
+        if ($this->isStartWithHttp($path)) {
             $url = $path;
         } else {
             $url = $this->router->getUrl($path, $params, '&');
@@ -187,7 +197,7 @@ abstract class App {
 
     public function error($code, $content='') {
         if (!$content) {
-            $path = $this->config->get('app.error_static_folder').$code.'.html';
+            $path = $this->config->get('app.error_static_folder').'/'.$code.'.html';
             if (!file_exists($path)) {
                 $content = "Couldn't find error page for ".$code;
             } else {
@@ -196,6 +206,10 @@ abstract class App {
         }
         http_response_code($code);
         $this->finish($content);
-    }    
+    }
+
+    public function finish($content='') {
+        exit($content);
+    }
     
 }

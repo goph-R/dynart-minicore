@@ -42,7 +42,7 @@ class View {
         if (!isset($this->folders[$name])) {
             return $result;
         }
-        $result = $this->folders[$name].substr($path, $perPos + 1, strlen($path) - $perPos).'.'.$extension;
+        $result = $this->folders[$name].'/'.substr($path, $perPos + 1, strlen($path) - $perPos).'.'.$extension;
         return $result;
     }
 

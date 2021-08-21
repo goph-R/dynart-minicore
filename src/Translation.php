@@ -52,7 +52,7 @@ class Translation {
             return $result;
         }
         if ($this->data[$namespace] === false) {
-            $path = $this->folders[$namespace].$this->locale.'.ini';
+            $path = $this->folders[$namespace].'/'.$this->locale.'.ini';
             $iniData = file_exists($path) ? parse_ini_file($path) : [];
             $this->data[$namespace] = $iniData;
         }

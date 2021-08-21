@@ -1,15 +1,7 @@
 ;<?php '
 
-; You can use an [include] group for include more config.ini files,
-; for example: path1 = "../config.ini.php". The "path1" name is necessary
-; because of the ini format, but will not be used anywhere.
-
-; All configuration (will be used on every environment)
-
-[all]
-
 ; Logger configuration, level can be "info", "warning", "error"
-; Path can be relative to the working directory
+; Path can be relative to the working directory or an absolute path.
 logger.level = "error"
 logger.path = "logs/error.log"
 
@@ -26,27 +18,26 @@ translation.all = "en"
 ; Default locale
 translation.default = "en"
 
-; If the application is in a folder (for example: https://domain.com/app/)
-; put the folder path here, start and end with a slash! (for example: /app/)
-request.uri_prefix = ""
+; If the application is in a folder (for example: https://domain.com/app)
+; put the folder path here, start with a slash! (for example: /app)
+request.uri_prefix = "/gears/admin"
 
-; The base URL of the application (for example: https://domain.com/app/)
-; Put slash to the end!
-router.base_url = ""
+; The base URL of the application (for example: https://domain.com/app)
+router.base_url = "http://localhost/gears/admin"
 
 ; The index file (usually index.php)
 router.index = "index.php"
 
 ; Is the server uses rewrite for routing?
-; Check the example .htaccess file for Apache server.
-router.use_rewrite = true
+; Check the example .htaccess file for Apache server config.
+router.use_rewrite = false
 
 ; The query parameter that will be used for routing.
 router.parameter = "route"
 
 ; A prefix that will be always on the beginning of the route paths.
-; You can define variables like {variable} in it. Must end with a slash!
-; When you have more than one locale, you should use it like "{locale}/".
+; You can define variables like {variable} in it. Must start with a slash!
+; When you have more locale (translation.all), set it to "/{locale}".
 router.path_prefix = ""
 
 ; Is the mailer send fake emails? If it is true,
@@ -82,49 +73,23 @@ mailer.from_email = "info@yourdomain.com"
 mailer.from_name = "From Name"
 
 ; The absolute path of the root folder of the application.
-; For example: /var/www/domain.com/
+; For example: /var/www/domain.com
 app.path = ""
 
 ; In paths and URLs the ~ symbol equals with the root folder (app.path)
-; or with the base url (router.base_url). Every path and URL must
-; end with a slash.
+; or with the base url (router.base_url).
 
 ; Path to the minicore framework folder
-app.core_folder = "~/vendor/dynart/minicore/src/"
+app.core_folder = "~/vendor/dynart/minicore"
 
 ; Path to a folder that contains the error html files (401.html, 500.html, ..)
-app.error_static_folder = "~/vendor/dynart/minicore/static/"
+app.error_static_folder = "~/vendor/dynart/minicore/static"
 
 ; URL for the static files (css, js, etc.)
-app.static_url = "~/static/"
+app.static_url = "~/static"
 
 ; Path and URL for the media files (usually uploaded by users)
-app.media_folder = "~/media/"
-app.media_url = "~/media/"
-
-
-
-; Development configuration
-; Will be used only on "dev" environment, overwrites the [all] configuration.
-
-[dev]
-
-logger.level = "info"
-logger.path = "logs/info.log"
-
-request.uri_prefix = ""
-
-database.default.dsn = "mysql:localhost"
-database.default.name = ""
-database.default.user = ""
-database.default.password = ""
-
-router.base_url = ""
-router.index = "index.dev.php"
-router.use_rewrite = false
-
-mailer.fake = true
-
-app.path = ""
+app.media_folder = "~/media"
+app.media_url = "~/media"
 
 ;';

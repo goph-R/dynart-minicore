@@ -44,7 +44,7 @@ class Router {
 
         // set the path, if it's an alias, get the real path
         $request = $this->framework->get('request');
-        $this->path = $request->get($this->getParameter(), '');
+        $this->path = $request->get($this->getParameter(), '/');
         if ($this->routeAliases->hasAlias($this->path)) {
             $this->path = $this->routeAliases->getPath($this->path);
         }        
@@ -66,8 +66,8 @@ class Router {
      * @return Route
      */
     public function matchRoute(string $path) {
-        if (!$path) {
-            $path = $this->getPathPrefix();
+        if (!$path || $path == '/') {
+            $path = $this->getPathPrefix().'/';
         }
         if ($this->aliases->hasAlias($path)) {
             $path = $this->aliases->getPath($path);
@@ -148,8 +148,8 @@ class Router {
             $routePrefix = str_replace($name, $value, $routePrefix);
         }
         
-        // return with the prefix (index.dev.php?route=en/something)
-        $result = $this->getBaseUrl();
+        // return with the prefix (index.dev.php?route=/en/something)
+        $result = $this->getBaseUrl().'/';
         if (!$this->usingRewrite() && $path !== null) {
             $result .= $this->getIndex();
             if ($path || $routePrefix) {
