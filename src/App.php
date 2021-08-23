@@ -154,7 +154,11 @@ abstract class App {
 
     public function redirect(string $path, array $params=[]) {
         if ($this->isStartWithHttp($path)) {
-            $url = $path;
+            if ($params) {
+                $url = $path.'?'.http_build_query($params, '', '&');
+            } else {
+                $url = $path;
+            }
         } else {
             $url = $this->router->getUrl($path, $params, '&');
         }

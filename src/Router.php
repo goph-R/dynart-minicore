@@ -62,7 +62,6 @@ class Router {
 
     /**
      * @param string $path
-     * @param string $method
      * @return Route
      */
     public function matchRoute(string $path) {
