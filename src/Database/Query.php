@@ -10,7 +10,7 @@ abstract class Query {
     protected $framework;
     protected $db;
     protected $sqlParams = [];
-    protected $orderByFields = [];
+    protected $fieldsForOrdering = [];
     protected $options = [];
 
     protected $table;
@@ -46,37 +46,66 @@ abstract class Query {
     }    
 
     protected function getSelect($fields, array $options) {
-
+        if ($fields === null) {
+            // if no fields was given, set all for query
+            $fields = $this->getAllFields();
+        }
         $this->clearSqlParams();
+        $this->setOptions($options);
+        $this->useTranslatedInDefault();
+        $this->setFieldsForOrdering($fields);
+        return $this->getSelectSql($fields);
+    }
+    
+    protected function setOptions(array $options) {
         $this->options = $options;
-        
-        // use translated in default
+    }
+
+    protected function useTranslatedInDefault() {
         if (!isset($this->options['use_translated'])) {
             $this->options['use_translated'] = true;
         }
-        
-        // use all the fields in default
-        if ($fields === null) {
-            $fields = $this->getAllFields();
+    }
+
+    protected function setFieldsForOrdering(array $fields) {
+        $this->fieldsForOrdering = $this->getFieldsForOrdering($fields);
+    }
+
+    protected function getFieldsForOrdering(array $fields) {
+        $result = [];
+        foreach ($fields as $alias => $full) {
+            if (is_integer($alias)) {
+                $result[] = $full;
+            } else {
+                $result[] = $alias;
+            }
         }
-        $this->orderByFields = array_keys($fields);
-        $asFields = [];
+        return $result;
+    }
+
+    protected function getAsNames(array $fields) {
+        $result = [];
         foreach ($fields as $alias => $full) {
             $full = is_array($full) ? $full[0] : $this->db->escapeName($full);
             if (is_integer($alias)) {
-                $asFields[] = $full;
+                $result[] = $full;
             } else {
-                $asFields[] = $full.' AS '.$this->db->escapeName($alias);
-            }            
+                $result[] = $full.' AS '.$this->db->escapeName($alias);
+            }
         }
-        $fieldNames = join(', ', $asFields);
+        return $result;
+    }
 
-        // create the select        
+    protected function getAsNamesString(array $fields) {
+        return join(', ', $this->getAsNames($fields));
+    }
+
+    protected function getSelectSql(array $fields) {
+        $asNames = $this->getAsNamesString($fields);
         $table = $this->getTable();
         $tableName = $this->db->escapeName($table->getName());
-        $sql = "SELECT $fieldNames FROM $tableName";
+        $sql = "SELECT $asNames FROM $tableName";
         $sql .= $this->createJoins();
-
         return $sql;
     }
 
@@ -206,7 +235,7 @@ abstract class Query {
             return '';
         }
         $field = $this->options['order_by'];
-        if (!in_array($field, $this->orderByFields)) {
+        if (!in_array($field, $this->fieldsForOrdering)) {
             return '';
         }
         $direction = $this->options['order_dir'] == 'asc' ? 'asc' : 'desc';
@@ -215,7 +244,7 @@ abstract class Query {
     
     protected function getLimit() {
         if (!isset($this->options['page']) || !isset($this->options['page_size'])) {
-            return '';
+            return ' LIMIT 1';
         }
         $page = (int)$this->options['page'];
         if ($page < 0) {

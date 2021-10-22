@@ -4,7 +4,7 @@ namespace Dynart\Minicore\Database;
 
 use Dynart\Minicore\FrameworkException;
 
-class Record {
+class Record implements \JsonSerializable {
 
     protected $modified = [];
     protected $newRecord;
@@ -46,7 +46,7 @@ class Record {
         }
     }
     
-    public function getAll(array $fields=[]) {
+    public function asArray(array $fields=[]) {
         if (!$fields) {
             return $this->data;
         }
@@ -67,6 +67,10 @@ class Record {
             }
         }
         return $result;
+    }
+
+    public function jsonSerialize() {
+        return $this->data;
     }
 
 }

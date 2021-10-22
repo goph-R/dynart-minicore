@@ -10,7 +10,7 @@ abstract class Table {
     protected $framework;
     protected $db;
     protected $name = '';
-    protected $fields = []; // [name => default value]
+    protected $fields = []; // [name => [default_value => ''] or null]
 
     /** @var string|array */
     protected $primaryKey = 'id'; // use array for multi primary keys
@@ -74,7 +74,7 @@ abstract class Table {
     }
 
     protected function insert(Record $record) {
-        $all = $record->getAll();
+        $all = $record->asArray();
         $data = $this->getSaveData($all);
         $this->db->insert($this->name, $data);
         if ($this->autoId && is_string($this->primaryKey)) {

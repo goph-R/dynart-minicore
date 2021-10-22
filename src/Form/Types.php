@@ -10,7 +10,7 @@ class Types {
 
     public function get($name) {
         if (!isset($this->data[$name])) {
-            throw new FrameworkException("Input type doesn't exist: ".$name);
+            throw new FrameworkException("Type doesn't exist: ".$name);
         }
         return $this->data[$name];
     }
