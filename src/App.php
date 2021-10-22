@@ -46,9 +46,10 @@ abstract class App {
         $this->configPaths = $configPaths;
         $this->framework = Framework::instance();
         $this->framework->add([
+            // instance name => declaration
             'config'         => 'Config',
             'logger'         => 'Logger',
-            'database'       => ['Database', 'default'],
+            'database'       => ['Database\MariaDatabase', 'default'],
             'request'        => 'Request',
             'response'       => 'Response',
             'router'         => 'Router',

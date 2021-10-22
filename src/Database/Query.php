@@ -252,7 +252,7 @@ abstract class Query {
         }
         $pageSize = (int)$this->options['page_size'];
         if ($pageSize < 1 || $pageSize > 100) { // TODO: max page size, default page size
-            $pageSize = 25;
+            $pageSize = 1;
         }            
         $start = $page * $pageSize;
         return ' LIMIT '.$start.', '.$pageSize;
