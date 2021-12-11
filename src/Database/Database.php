@@ -48,12 +48,12 @@ abstract class Database {
         try {
             // we only want json_encode the parameters if the logger level is info
             if ($this->logger->getLevel() <= Logger::INFO) { 
-                $this->logger->info("Executing query: \n$query".$this->getParametersString($params));
+                $this->logger->info("Database query:\n".$query.$this->getParametersString($params)."\n");
             }
             $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
         } catch (\RuntimeException $e) {
-            $this->logger->error("SQL error:\n$query".$this->getParametersString($params));
+            $this->logger->error("Database error: ".$this->getParametersString($params)."\nThe query was: ".$query);
             throw $e;
         }
         return $stmt;

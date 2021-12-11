@@ -54,9 +54,16 @@ class Router {
         $this->prefixVariables['{'.$name.'}'] = $callable;
     }
 
-    public function add($data) {
+    public function add(array $data) {
         foreach ($data as $d) {
-            $this->addRoute($d[0], $d[1], $d[2], isset($d[3]) ? $d[3] : ['GET']);
+            $path = $d[0];
+            $controller = $d[1];
+            $action = $d[2];
+            $methods = isset($d[3]) ? $d[3] : ['GET'];
+            if ($d[0] == '/') {
+                $this->addRoute('', $controller, $action, $methods);
+            }
+            $this->addRoute($path, $controller, $action, $methods);
         }
     }
 

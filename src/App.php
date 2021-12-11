@@ -13,6 +13,7 @@ abstract class App {
     const CONFIG_MEDIA_FOLDER = 'app.media_folder';
     const CONFIG_MODULES_FOLDER = 'app.modules_folder';
     const CONFIG_MODULES_URL = 'app.modules_url';
+    const CONFIG_ERROR_STATIC_FOLDER = 'app.error_static_folder';
 
     protected $configPaths;
 
@@ -67,13 +68,14 @@ abstract class App {
         );
     }
 
-    public function init() {
-
+    public function loadConfig() {
         $this->config = $this->framework->get('config');
         foreach ($this->configPaths as $path) {
             $this->config->load($path); // TODO: config cache?
         }
+    }
 
+    public function init() {
         $coreFolder = $this->getCoreFolder();
 
         $this->request = $this->framework->get('request');
@@ -138,7 +140,11 @@ abstract class App {
     public function getMediaUrl(string $path='') {
         $url = $this->config->get(self::CONFIG_MEDIA_URL);
         return $this->getFullUrl($url).$path;
-    }  
+    }
+
+    public function getErrorStaticFolder() {
+        return $this->config->get(self::CONFIG_ERROR_STATIC_FOLDER);
+    }
     
     public function getStaticUrl(string $path, bool $useTimestamp=true) {
         if ($this->isStartWithHttp($path)) {
@@ -163,13 +169,16 @@ abstract class App {
         } else {
             $url = $this->router->getUrl($path, $params, '&');
         }
+        if ($this->request->getHeader('X-Requested-With') == 'XMLHttpRequest') {
+            $this->framework->finish('<script>location.href="'.esc($url).'";</script>');
+        }
         header('Location: '.$url);
         $this->framework->finish();
-    }    
+    }
 
     public function error($code, $content='') {
         if (!$content) {
-            $path = $this->config->get('app.error_static_folder').'/'.$code.'.html';
+            $path = $this->getErrorStaticFolder().'/'.$code.'.html';
             if (!file_exists($path)) {
                 $content = "Couldn't find error page for ".$code;
             } else {

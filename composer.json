@@ -17,6 +17,6 @@
     "minimum-stability": "dev",
     "require": {
         "phpmailer/phpmailer": "dev-master",
-        "firebase/php-jwt": "dev-master"
+        "firebase/php-jwt": "dev-main"
     }
 }

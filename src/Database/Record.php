@@ -10,7 +10,7 @@ class Record implements \JsonSerializable {
     protected $newRecord;
     protected $data;
 
-    public function __construct(array &$data, bool $newRecord=true) {
+    public function __construct(array $data, bool $newRecord=true) {
         $this->data = $data;
         $this->newRecord = $newRecord;
     }

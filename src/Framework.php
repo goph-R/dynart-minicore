@@ -24,6 +24,7 @@ class Framework
         self::setInstance($framework);        
         $framework->add(['app' => [$appClass, $configPaths]]);
         $app = $framework->get('app');
+        $app->loadConfig();
         $app->init();
         $app->run();
     }

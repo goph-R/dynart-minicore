@@ -6,32 +6,66 @@ use Dynart\Minicore\Framework;
 use Dynart\Minicore\FrameworkException;
 
 abstract class Query {
-    
+
+    /** @var Framework */
     protected $framework;
+
+    /** @var Database */
     protected $db;
-    protected $sqlParams = [];
-    protected $fieldsForOrdering = [];
-    protected $options = [];
 
     protected $table;
     protected $textSearchFields = [];
 
+    protected $sqlParams = [];
+    protected $fieldsForOrdering = [];
+    protected $options = [];
+
+    protected $selectOptionRunners = [];
+    protected $joinOptionRunners = [];
+
     public function __construct(string $database='database') {
         $this->framework = Framework::instance();
         $this->db = $this->framework->get($database);
+
+        $this->addSelectOption('id', [$this, 'idOption']);
+        $this->addSelectOption('text', [$this, 'textOption']);
     }
 
+    public function optionEquals(string $name) {
+        $this->addSqlParams([':'.$name => $this->getOption($name)]);
+        return [$this->db->escapeName($name).' = :'.$name];
+    }
+
+    public function addSelectOption(string $name, callable $callable) {
+        $this->selectOptionRunners[$name] = $callable;
+    }
+
+    public function addJoinOption(string $name, callable $callable) {
+        $this->joinOptionRunners[$name] = $callable;
+    }
+
+    public function getOption(string $name, $default=null) {
+        return array_key_exists($name, $this->options) ? $this->options[$name] : $default;
+    }
+
+    /**
+     * @param $id The id of the record
+     * @param bool $translated Join the translation table?
+     * @return Record
+     */
     public function findById($id, $translated=true) {
-        $sql = $this->getSelect(null, [
-            'find_id' => $id,
+        return $this->findOne(null, [
+            'id' => $id,
             'use_translated' => $translated,
         ]);
-        $sql .= $this->getWhere();
-        $sql .= ' LIMIT 1';
-        return $this->db->fetch($sql, $this->sqlParams);
     }
 
-    public function findAll($fields=null, array $options=[]) {
+    /**
+     * @param null $fields Fields for the select, null means: all
+     * @param array $options Options for the select
+     * @return Record[]
+     */
+    public function find($fields=null, array $options=[]) {
         $sql = $this->getSelect($fields, $options);
         $sql .= $this->getWhere();
         $sql .= $this->getOrder();
@@ -39,11 +73,41 @@ abstract class Query {
         return $this->db->fetchAll($sql, $this->sqlParams);
     }
 
-    public function findAllCount(array $options=[]) {
+    /**
+     * @param null $fields Fields for the select, null means: all
+     * @param array $options Options for the select
+     * @return Record
+     */
+    public function findOne($fields=null, array $options=[]) {
+        $sql = $this->getSelect($fields, $options);
+        $sql .= $this->getWhere();
+        $sql .= ' LIMIT 1';
+        return $this->db->fetch($sql, $this->sqlParams);
+    }
+
+    /**
+     * @param array $options Options for the select
+     * @return int
+     */
+    public function findCount(array $options=[]) {
         $sql = $this->getSelect([['COUNT(1)']], $options);
         $sql .= $this->getWhere();
         return (int)$this->db->fetchColumn($sql, $this->sqlParams);        
-    }    
+    }
+
+    public function idOption() {
+        $table = $this->getTable();
+        list($condition, $params) = $table->getPrimaryKeyConditionAndParams($this->getOption('id'));
+        $this->addSqlParams($params);
+        return [$condition];
+    }
+
+    public function textOption() {
+        $condition = $this->getTextSearchCondition();
+        if ($condition) {
+            return [$condition];
+        }
+    }
 
     protected function getSelect($fields, array $options) {
         if ($fields === null) {
@@ -117,7 +181,7 @@ abstract class Query {
         $this->sqlParams = [];
     }
 
-    protected function addSqlParams(array $params) {
+    public function addSqlParams(array $params) {
         $this->sqlParams = array_merge($this->sqlParams, $params);
     }
 
@@ -145,8 +209,23 @@ abstract class Query {
         return $result;
     }
 
-    protected function getJoins() {
+    protected function runRunners(array $runners) {
         $result = [];
+        foreach ($runners as $name => $callable) {
+            if ($this->getOption($name) != null) {
+                $runnerResult = call_user_func($callable);
+                if (is_array($runnerResult)) {
+                    $result = array_merge($result, $runnerResult);
+                } else {
+                    throw new FrameworkException('Runner error: ', $name);
+                }
+            }
+        }
+        return $result;
+    }
+
+    protected function getJoins() {
+        $result = $this->runRunners($this->joinOptionRunners);
         if ($this->useTranslated()) {
             $result[] = $this->getTranslationJoin();
         }
@@ -156,22 +235,13 @@ abstract class Query {
     protected function getWhere() {
         $conditions = $this->getConditions();
         return $conditions ? ' WHERE '.join(' AND ', $conditions) : '';
-    }    
+    }
+
 
     protected function getConditions() {
-        $result = [];
-        if (isset($this->options['find_id'])) {
-            $table = $this->getTable();
-            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($this->options['find_id']);
-            $this->addSqlParams($params);
-            $result[] = $condition;
-        }
-        $condition = $this->getTextSearchCondition();
-        if ($condition) {
-            $result[] = $condition;
-        }
+        $result = $this->runRunners($this->selectOptionRunners);
         return $result;
-    }    
+    }
 
     protected function getAllFields() {
         $result = [];
@@ -211,15 +281,14 @@ abstract class Query {
     protected function useTranslated() {
         $table = $this->getTable();
         return $table->hasTranslationTable()
-            && isset($this->options['use_translated'])
-            && $this->options['use_translated'];
+            && $this->getOption('use_translated', false);
     }
 
-    protected function getTextSearchCondition() {
-        if (!$this->textSearchFields || !isset($this->options['text']) || !$this->options['text']) {
+    public function getTextSearchCondition() {
+        if (!$this->textSearchFields) {
             return '';
         }
-        $likeText = '%'.str_replace('%', '\%', $this->options['text']).'%';
+        $likeText = '%'.str_replace('%', '\%', $this->getOption('text')).'%';
         $conditions = [];
         $params = [];
         foreach ($this->textSearchFields as $field) {
@@ -231,26 +300,24 @@ abstract class Query {
     }
 
     protected function getOrder() {
-        if (!isset($this->options['order_by']) || !isset($this->options['order_dir'])) {
-            return '';
-        }
-        $field = $this->options['order_by'];
+        $field = $this->getOption('order_by');
+        $direction = $this->getOption('order_dir');
         if (!in_array($field, $this->fieldsForOrdering)) {
             return '';
         }
-        $direction = $this->options['order_dir'] == 'asc' ? 'asc' : 'desc';
+        $direction = $direction == 'desc' ? 'desc' : 'asc';
         return ' ORDER BY '.$field.' '.$direction;
     }
     
     protected function getLimit() {
-        if (!isset($this->options['page']) || !isset($this->options['page_size'])) {
+        if ($this->getOption('no_limit')) {
+            return '';
+        }
+        $page = (int)$this->getOption('page');
+        $pageSize = (int)$this->getOption('page_size');
+        if ($page < 0 || !$pageSize) {
             return ' LIMIT 1';
         }
-        $page = (int)$this->options['page'];
-        if ($page < 0) {
-            $page = 0;
-        }
-        $pageSize = (int)$this->options['page_size'];
         if ($pageSize < 1 || $pageSize > 100) { // TODO: max page size, default page size
             $pageSize = 1;
         }            
