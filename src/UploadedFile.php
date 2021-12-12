@@ -10,8 +10,8 @@ class UploadedFile {
     private $size;
     private $type;
     
-    public function __construct(array $data, int $index=-1) {
-        if ($index == -1) {
+    public function __construct(array $data, $index=null) {
+        if ($index === null) {
             $this->name = $data['name'];
             $this->tempPath = $data['tmp_name'];
             $this->error = $data['error'];

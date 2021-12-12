@@ -4,7 +4,7 @@ use Dynart\Minicore\Framework;
 
 function static_url($path, $useTimestamp=true) {
     $app = Framework::instance()->get('app');
-    return $app->getStaticUrl($path);
+    return $app->getStaticUrl($path, $useTimestamp);
 }
 
 function route_url($path=null, $params=[], $amp='&amp;') {
@@ -28,24 +28,6 @@ function use_script($src) {
     $view = Framework::instance()->get('view');
     $view->addScript($src);
 }
-
-/*
-function use_module_css($moduleId, $src, $media='all') {
-    $framework = Framework::instance();
-    $view = $framework->get('view');
-    $app = $framework->get('app');
-    $module = $app->getModule($moduleId);
-    $view->addStyle($module->getUrl().$src, $media);
-}
-
-function use_module_script($moduleId, $src) {
-    $framework = Framework::instance();
-    $view = $framework->get('view');
-    $app = $framework->get('app');
-    $module = $app->getModule($moduleId);
-    $view->addScript($module->getUrl().$src);
-}
-*/
 
 function fetch_scripts($useTimestamp=true) {
     $view = Framework::instance()->get('view');

@@ -10,7 +10,7 @@ abstract class Table {
     protected $framework;
     protected $db;
     protected $name = '';
-    protected $fields = []; // [name => [default_value => ''] or null]
+    protected $fields = []; // name => [default_value => ''] or null
 
     /** @var string|array */
     protected $primaryKey = 'id'; // use array for multi primary keys

@@ -6,6 +6,8 @@ class Request {
     
     const CONFIG_URI_PREFIX = 'request.uri_prefix';
 
+    const UPLOADED_FILE_CLASS_PATH = '\\Dynart\\Minicore\\UploadedFile';
+
     protected $config;
     protected $data;
     protected $cookies;
@@ -25,54 +27,15 @@ class Request {
         $this->createUploadedFiles($framework);
         $this->processJsonData();
     }
-    
-    protected function createUploadedFiles(Framework $framework) {
-        if (empty($_FILES)) {
-            return;
-        }
-        foreach ($_FILES as $name => $file) {
-            if (!is_array($file['name'])) {
-                $uploadedFile = $framework->create(['\\Dynart\\Minicore\\UploadedFile', $file]);
-                $this->uploadedFiles[$name] = $uploadedFile;
-            } else {
-                $this->createUploadedFilesFromArray($framework, $name, $file);
-            }            
-        }
-    }
-    
-    protected function createUploadedFilesFromArray(Framework $framework, $name, array $file) {
-        $this->uploadedFiles[$name] = [];
-        foreach (array_keys($file['name']) as $index) {
-            $uploadedFile = $framework->create(['UploadedFile', $file, $index]);
-            $this->uploadedFiles[$name][$index] = $uploadedFile;
-        }
-    }
 
     public function isJson() {
         return $this->getHeader('Content-Type') == 'application/json';
     }
 
-    public function getRawInput() {
+    public function getBody() {
         return file_get_contents('php://input');
     }
 
-    private function processJsonData() {
-        if (!$this->isJson()) {
-            return;
-        }
-        $json = $this->getRawInput();
-        if (!$json) {
-            return;
-        }
-        $data = json_decode($json, true);
-        if (!is_array($data)) {
-            return;
-        }
-        foreach ($data as $name => $value) {
-            $this->set($name, $value);
-        }
-    }
-    
     public function getAll() {
         return $this->data;
     }
@@ -115,7 +78,7 @@ class Request {
         }
         return $ip;
     }
-    
+
     public function getUri() {
         $uriPrefix = $this->config->get(self::CONFIG_URI_PREFIX);
         return substr($this->server['REQUEST_URI'], strlen($uriPrefix));
@@ -124,5 +87,47 @@ class Request {
     public function getUploadedFile(string $name) {
         return isset($this->uploadedFiles[$name]) ? $this->uploadedFiles[$name] : null;
     }
+
+    protected function createUploadedFiles(Framework $framework) {
+        if (empty($_FILES)) {
+            return;
+        }
+        foreach ($_FILES as $name => $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+            if (is_array($file['name'])) {
+                $this->createUploadedFilesFromArray($framework, $name, $file);
+            } else {
+                $uploadedFile = $framework->create([self::UPLOADED_FILE_CLASS_PATH, $file]);
+                $this->uploadedFiles[$name] = $uploadedFile;
+            }            
+        }
+    }
     
+    protected function createUploadedFilesFromArray(Framework $framework, $name, array $file) {
+        $this->uploadedFiles[$name] = [];
+        foreach (array_keys($file['name']) as $index) {
+            $uploadedFile = $framework->create([self::UPLOADED_FILE_CLASS_PATH, $file, $index]);
+            $this->uploadedFiles[$name][$index] = $uploadedFile;
+        }
+    }
+
+    protected function processJsonData() {
+        if (!$this->isJson()) {
+            return;
+        }
+        $json = $this->getBody();
+        if (!$json) {
+            return;
+        }
+        $data = json_decode($json, true);
+        if (!is_array($data)) {
+            return;
+        }
+        foreach ($data as $name => $value) {
+            $this->set($name, $value);
+        }
+    }
+
 }

@@ -11,8 +11,6 @@ abstract class App {
     const CONFIG_STATIC_FOLDER = 'app.static_folder';
     const CONFIG_MEDIA_URL = 'app.media_url';
     const CONFIG_MEDIA_FOLDER = 'app.media_folder';
-    const CONFIG_MODULES_FOLDER = 'app.modules_folder';
-    const CONFIG_MODULES_URL = 'app.modules_url';
     const CONFIG_ERROR_STATIC_FOLDER = 'app.error_static_folder';
 
     protected $configPaths;

@@ -23,6 +23,7 @@ class Framework
         $framework = new Framework();        
         self::setInstance($framework);        
         $framework->add(['app' => [$appClass, $configPaths]]);
+        /** @var App $app */
         $app = $framework->get('app');
         $app->loadConfig();
         $app->init();
@@ -121,12 +122,16 @@ class Framework
             $message = "Couldn't create instance for declaration: ".json_encode($declaration);
             throw new FrameworkException($message);
         }
-        return $reflect->newInstanceArgs($args);
+        $result = $reflect->newInstanceArgs($args);
+        // TODO: created event
+        return $result;
     }
 
     public function finish($content='') {
         if ($this->isCreated('session')) {
-            $this->get('session')->finish();
+            /** @var Session $session */
+            $session = $this->get('session');
+            $session->finish();
         }
         exit($content);
     }    

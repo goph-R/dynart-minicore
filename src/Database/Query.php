@@ -27,8 +27,20 @@ abstract class Query {
         $this->framework = Framework::instance();
         $this->db = $this->framework->get($database);
 
-        $this->addSelectOption('id', [$this, 'idOption']);
-        $this->addSelectOption('text', [$this, 'textOption']);
+        $this->addSelectOption('id', function () {
+            $table = $this->getTable();
+            list($condition, $params) = $table->getPrimaryKeyConditionAndParams($this->getOption('id'));
+            $this->addSqlParams($params);
+            return [$condition];
+        });
+
+        $this->addSelectOption('text', function () {
+            $condition = $this->getTextSearchCondition();
+            if ($condition) {
+                return [$condition];
+            }
+            return [];
+        });
     }
 
     public function optionEquals(string $name) {
@@ -93,20 +105,6 @@ abstract class Query {
         $sql = $this->getSelect([['COUNT(1)']], $options);
         $sql .= $this->getWhere();
         return (int)$this->db->fetchColumn($sql, $this->sqlParams);        
-    }
-
-    public function idOption() {
-        $table = $this->getTable();
-        list($condition, $params) = $table->getPrimaryKeyConditionAndParams($this->getOption('id'));
-        $this->addSqlParams($params);
-        return [$condition];
-    }
-
-    public function textOption() {
-        $condition = $this->getTextSearchCondition();
-        if ($condition) {
-            return [$condition];
-        }
     }
 
     protected function getSelect($fields, array $options) {
